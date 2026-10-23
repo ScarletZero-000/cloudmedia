@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
+import ConfirmDialog, { type ConfirmState } from "@/components/ui/ConfirmDialog";
 import {
   Users, Image as ImageIcon, MessageCircle, Clock, Trash2, ShieldCheck, ShieldOff,
   Check, X, TriangleAlert, CircleCheck,
@@ -44,6 +45,7 @@ export default function AdminDashboard({
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState>(null);
 
   const totals = {
     users: users.length,
@@ -79,15 +81,21 @@ export default function AdminDashboard({
       })
     );
 
-  const deleteUser = (id: string) => {
-    if (!confirm("Delete this user and all their content?")) return;
-    act(`u-${id}`, "User deleted", () => fetch(`/api/admin/users?id=${id}`, { method: "DELETE" }));
-  };
+  const deleteUser = (id: string) =>
+    setConfirmState({
+      title: "Delete this user?",
+      body: "All their uploads and comments are removed too. This cannot be undone.",
+      confirmLabel: "Delete user", danger: true,
+      onConfirm: () => act(`u-${id}`, "User deleted", () => fetch(`/api/admin/users?id=${id}`, { method: "DELETE" })),
+    });
 
-  const deletePost = (id: string) => {
-    if (!confirm("Delete this image permanently?")) return;
-    act(`p-${id}`, "Image deleted", () => fetch(`/api/posts/${id}`, { method: "DELETE" }));
-  };
+  const deletePost = (id: string) =>
+    setConfirmState({
+      title: "Delete this image?",
+      body: "Removed from the feed permanently.",
+      confirmLabel: "Delete", danger: true,
+      onConfirm: () => act(`p-${id}`, "Image deleted", () => fetch(`/api/posts/${id}`, { method: "DELETE" })),
+    });
 
   const approve = (id: string) =>
     act(`pp-${id}`, "Upload approved — now live in the feed", () =>
@@ -98,16 +106,19 @@ export default function AdminDashboard({
       })
     );
 
-  const reject = (id: string) => {
-    if (!confirm("Reject and delete this upload? The user will need to re-upload.")) return;
-    act(`pp-${id}`, "Upload rejected", () =>
-      fetch("/api/admin/posts/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId: id, action: "REJECT" }),
-      })
-    );
-  };
+  const reject = (id: string) =>
+    setConfirmState({
+      title: "Reject this upload?",
+      body: "The user will need to re-upload.",
+      confirmLabel: "Reject", danger: true,
+      onConfirm: () => act(`pp-${id}`, "Upload rejected", () =>
+        fetch("/api/admin/posts/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postId: id, action: "REJECT" }),
+        })
+      ),
+    });
 
   // albums management
   const [newAlbum, setNewAlbum] = useState("");
@@ -121,10 +132,13 @@ export default function AdminDashboard({
       }).then(() => setNewAlbum(""))
     );
   };
-  const deleteAlbum = (id: string) => {
-    if (!confirm("Delete this album? Its photos stay — they just become ungrouped.")) return;
-    act(`al-${id}`, "Album deleted", () => fetch(`/api/albums?id=${id}`, { method: "DELETE" }));
-  };
+  const deleteAlbum = (id: string) =>
+    setConfirmState({
+      title: "Delete this album?",
+      body: "Its photos stay — they just become ungrouped.",
+      confirmLabel: "Delete", danger: true,
+      onConfirm: () => act(`al-${id}`, "Album deleted", () => fetch(`/api/albums?id=${id}`, { method: "DELETE" })),
+    });
 
   return (
     <div className="container-classic py-16 md:py-24">
@@ -356,6 +370,8 @@ export default function AdminDashboard({
           </table>
         </div>
       </section>
+
+      <ConfirmDialog state={confirmState} onClose={() => setConfirmState(null)} />
 
       {/* toast */}
       {toast && (

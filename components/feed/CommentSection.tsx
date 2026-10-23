@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
+import ConfirmDialog, { type ConfirmState } from "@/components/ui/ConfirmDialog";
 import { MessageCircle, SendHorizonal, LoaderCircle, Trash2, CornerDownRight, BadgeCheck, X } from "lucide-react";
 
 type CommentDTO = {
@@ -21,6 +22,7 @@ export default function CommentSection({ postId }: { postId: string }) {
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const [error, setError] = useState("");
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -61,18 +63,24 @@ export default function CommentSection({ postId }: { postId: string }) {
     }
   }
 
-  async function remove(id: string) {
-    if (!confirm("Delete this comment?" + (repliesOf(id).length ? " Its replies are removed too." : ""))) return;
-    setDeletingId(id);
-    try {
-      const res = await fetch(`/api/comments?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
-      setComments((c) => (c ?? []).filter((x) => x.id !== id && x.parentId !== id));
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setDeletingId(null);
-    }
+  function remove(id: string) {
+    setConfirmState({
+      title: "Delete this comment?",
+      body: repliesOf(id).length ? "Its replies are removed too." : undefined,
+      confirmLabel: "Delete", danger: true,
+      onConfirm: async () => {
+        setDeletingId(id);
+        try {
+          const res = await fetch(`/api/comments?id=${id}`, { method: "DELETE" });
+          if (!res.ok) throw new Error("Delete failed");
+          setComments((c) => (c ?? []).filter((x) => x.id !== id && x.parentId !== id));
+        } catch (e: any) {
+          setError(e.message);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   }
 
   function startReply(c: CommentDTO) {
@@ -237,6 +245,7 @@ export default function CommentSection({ postId }: { postId: string }) {
       ) : (
         <p className="mt-10 text-sm text-ink-faint">Sign in to join the discussion.</p>
       )}
+      <ConfirmDialog state={confirmState} onClose={() => setConfirmState(null)} />
     </section>
   );
 }
