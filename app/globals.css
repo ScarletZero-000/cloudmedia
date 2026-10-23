@@ -4,6 +4,7 @@
 
 :root {
   --header-h: 4rem;
+  --noise-opacity: 0.035;
 }
 
 @layer base {
@@ -12,6 +13,8 @@
   }
   body {
     text-rendering: optimizeLegibility;
+    /* subtle paper grain — adds texture without images */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
   }
   ::selection {
     background: #b3401e;
@@ -20,6 +23,16 @@
   h1, h2, h3 {
     text-wrap: balance;
   }
+  /* refined focus ring site-wide */
+  :focus-visible {
+    outline: 2px solid #0c0c0c;
+    outline-offset: 2px;
+  }
+  /* thin scrollbar, editorial */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #f7f6f2; }
+  ::-webkit-scrollbar-thumb { background: #c9c8bf; border: 3px solid #f7f6f2; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #8a8a85; }
 }
 
 @layer components {
@@ -54,10 +67,36 @@
       placeholder:text-ink-faint focus:border-ink focus:outline-none transition-colors;
   }
   .card-line {
-    @apply border border-line bg-paper-raised transition-colors duration-300 hover:border-ink-soft;
+    @apply border border-line bg-paper-raised transition-all duration-300 hover:border-ink-soft hover:shadow-[0_2px_0_0_#0c0c0c];
   }
   /* editorial rule: short accent bar above section headings */
   .rule-accent {
     @apply mb-4 block h-[3px] w-10 bg-accent;
+  }
+  /* headline with inline accent word support: <em> renders sienna serif italic */
+  .heading-classic em {
+    @apply not-italic text-accent;
+  }
+  /* drop cap for blog/article prose */
+  .prose-classic > p:first-of-type::first-letter {
+    @apply float-left mr-3 font-serif text-6xl leading-[0.8] text-accent;
+  }
+  /* underline-on-hover links, classic editorial */
+  .link-underline {
+    @apply relative;
+  }
+  .link-underline::after {
+    content: "";
+    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-ink transition-all duration-300;
+  }
+  .link-underline:hover::after {
+    @apply w-full;
+  }
+}
+
+@layer utilities {
+  /* stagger reveal helper for framer-motion lists */
+  .stagger > * {
+    transition-delay: calc(var(--i, 0) * 60ms);
   }
 }
