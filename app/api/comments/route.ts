@@ -40,9 +40,10 @@ export async function POST(req: NextRequest) {
     include: { author: { select: { id: true, name: true, image: true, role: true } } },
   });
 
+  // analytics is best-effort — never fail the comment because of it
   await prisma.analytics.create({
     data: { event: "comment", userId: session.user.id, postId },
-  });
+  }).catch((e) => console.warn("analytics skip:", e?.code ?? e));
 
   return NextResponse.json({ comment }, { status: 201 });
 }

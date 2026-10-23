@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin Console" };
 
 export default async function AdminDashboardPage() {
-  const [users, posts, pendingPosts] = await Promise.all([
+  const [users, posts, pendingPosts, albums] = await Promise.all([
     prisma.user.findMany({
       select: {
         id: true, name: true, email: true, role: true, createdAt: true,
@@ -31,7 +31,11 @@ export default async function AdminDashboardPage() {
       },
       orderBy: { createdAt: "asc" }, // oldest first — fair queue order
     }),
+    prisma.album.findMany({
+      select: { id: true, title: true, _count: { select: { posts: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
-  return <AdminDashboard users={users} posts={posts} pendingPosts={pendingPosts} />;
+  return <AdminDashboard users={users} posts={posts} pendingPosts={pendingPosts} albums={albums} />;
 }

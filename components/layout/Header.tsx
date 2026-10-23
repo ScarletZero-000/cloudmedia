@@ -21,6 +21,7 @@ export default function Header() {
   const links = [
     { href: "/feed", label: "Feed" },
     { href: "/blog", label: "Blog" },
+    { href: "/albums", label: "Albums" },
     ...(session ? [{ href: "/upload", label: "Upload" }] : []),
     ...(isAdmin ? [{ href: "/dashboard", label: "Console" }] : []),
   ];

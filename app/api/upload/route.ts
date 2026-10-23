@@ -70,9 +70,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // analytics is best-effort — never fail the upload because of it
     await prisma.analytics.create({
       data: { event: "upload", userId: session.user.id, postId: post.id },
-    });
+    }).catch((e) => console.warn("analytics skip:", e?.code ?? e));
 
     if (post.status === "PENDING") {
       notifyTelegram(

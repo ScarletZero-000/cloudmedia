@@ -23,15 +23,33 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ album }, { status: 201 });
 }
 
-// GET /api/albums — list own albums (or all if ?all=1)
-export async function GET(req: NextRequest) {
-  const all = new URL(req.url).searchParams.get("all");
-  const session = await getServerSession(authOptions);
-
+// GET /api/albums — list all albums (for the albums section page)
+export async function GET() {
   const albums = await prisma.album.findMany({
-    where: all ? {} : session ? { authorId: session.user.id } : {},
     include: { _count: { select: { posts: true } }, author: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json({ albums });
+}
+
+// DELETE /api/albums?id=... — owner or admin only; posts are detached (albumId → null)
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Album id required" }, { status: 400 });
+
+  const album = await prisma.album.findUnique({ where: { id }, select: { authorId: true } });
+  if (!album) return NextResponse.json({ error: "Album not found" }, { status: 404 });
+
+  const isAdmin = session.user.role === "ADMIN";
+  if (album.authorId !== session.user.id && !isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // detach posts first (schema uses SetNull, but be explicit)
+  await prisma.post.updateMany({ where: { albumId: id }, data: { albumId: null } });
+  await prisma.album.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }

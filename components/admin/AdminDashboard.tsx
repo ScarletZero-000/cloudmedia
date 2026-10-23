@@ -32,10 +32,12 @@ export default function AdminDashboard({
   users,
   posts,
   pendingPosts,
+  albums,
 }: {
   users: AdminUser[];
   posts: AdminPost[];
   pendingPosts: PendingPost[];
+  albums: { id: string; title: string; _count: { posts: number } }[];
 }) {
   const router = useRouter();
   const reduce = useReducedMotion();
@@ -105,6 +107,23 @@ export default function AdminDashboard({
         body: JSON.stringify({ postId: id, action: "REJECT" }),
       })
     );
+  };
+
+  // albums management
+  const [newAlbum, setNewAlbum] = useState("");
+  const createAlbum = () => {
+    if (!newAlbum.trim()) return;
+    act("album-new", "Album created", () =>
+      fetch("/api/albums", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newAlbum.trim() }),
+      }).then(() => setNewAlbum(""))
+    );
+  };
+  const deleteAlbum = (id: string) => {
+    if (!confirm("Delete this album? Its photos stay — they just become ungrouped.")) return;
+    act(`al-${id}`, "Album deleted", () => fetch(`/api/albums?id=${id}`, { method: "DELETE" }));
   };
 
   return (
@@ -194,6 +213,45 @@ export default function AdminDashboard({
                   </div>
                 </div>
               </motion.div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Albums management */}
+      <section className="mb-20">
+        <h2 className="label-caps mb-6">Albums</h2>
+        <div className="card-line mb-6 flex flex-col gap-3 p-5 sm:flex-row">
+          <input
+            className="input-classic flex-1"
+            placeholder="New album title…"
+            value={newAlbum}
+            maxLength={200}
+            onChange={(e) => setNewAlbum(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && createAlbum()}
+          />
+          <button onClick={createAlbum} disabled={busyId === "album-new" || pending || !newAlbum.trim()} className="btn-accent justify-center disabled:opacity-40">
+            Create album
+          </button>
+        </div>
+        {albums.length === 0 ? (
+          <p className="text-sm text-ink-faint">No albums yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {albums.map((a) => (
+              <span key={a.id} className="flex items-center gap-2 border-2 border-ink bg-paper-raised px-3 py-2 text-sm font-bold">
+                {a.title}
+                <span className="text-xs font-semibold text-ink-faint">{a._count.posts}</span>
+                <button
+                  onClick={() => deleteAlbum(a.id)}
+                  disabled={busyId === `al-${a.id}` || pending}
+                  className="text-ink-faint transition-colors hover:text-accent disabled:opacity-30"
+                  title="Delete album"
+                  aria-label={`Delete album ${a.title}`}
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                </button>
+              </span>
             ))}
           </div>
         )}
@@ -320,10 +378,10 @@ function Stat({
   icon: React.ReactNode; label: string; value: number | string; accent?: boolean; warn?: boolean;
 }) {
   return (
-    <div className={`card-hard px-5 py-6 ${accent ? "bg-ink text-paper" : ""}`}>
+    <div className={`card-hard px-5 py-6 ${accent ? "border-ink bg-ink text-paper" : ""}`}>
       <div className={`mb-3 flex items-center gap-2 ${accent ? "text-paper/60" : warn ? "text-accent" : "text-ink-faint"}`}>
         {icon}
-        <span className="label-caps" style={accent ? { color: "rgba(247,246,242,0.6)" } : undefined}>{label}</span>
+        <span className={`label-caps ${accent ? "!text-paper/60" : ""}`}>{label}</span>
       </div>
       <p className={`heading-classic text-4xl ${warn && !accent ? "text-accent" : ""}`}>{value}</p>
     </div>
