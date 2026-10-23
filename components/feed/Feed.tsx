@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { PostDTO } from "@/types";
+import { useSession } from "next-auth/react";
 import MediaCard from "@/components/feed/MediaCard";
 import { ArrowDown, LoaderCircle } from "lucide-react";
 
 export default function Feed({ initialPosts, initialCursor }: { initialPosts: PostDTO[]; initialCursor: string | null }) {
+  const { data: session } = useSession();
+  const me = session?.user as { id?: string; role?: string } | undefined;
   const [posts, setPosts] = useState<PostDTO[]>(initialPosts);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
@@ -66,7 +69,7 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
       ) : (
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((post, i) => (
-            <MediaCard key={post.id} post={post} index={i} />
+            <MediaCard key={post.id} post={post} index={i} canDelete={Boolean(me && (me.role === "ADMIN" || me.id === post.author.id))} />
           ))}
         </div>
       )}

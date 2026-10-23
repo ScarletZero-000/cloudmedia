@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import RichText from "@/components/editor/RichText";
 import CommentSection from "@/components/feed/CommentSection";
 import EditPostButton from "@/components/feed/EditPostButton";
+import DeletePostButton from "@/components/feed/DeletePostButton";
 import { ArrowLeft, BadgeCheck } from "lucide-react";
 import type { RichBlock } from "@/types";
 
@@ -100,15 +101,18 @@ export default async function PostPage({
         )}
         <div className="flex items-start justify-between gap-4">
           <h1 className="heading-classic text-4xl md:text-5xl">{post.title}</h1>
-          <EditPostButton
-            post={{
-              id: post.id,
-              title: post.title,
-              description: post.description as { type: string; text: string }[] | null,
-              url: post.url,
-              canEdit,
-            }}
-          />
+          <div className="flex shrink-0 items-center gap-1 pt-2">
+            <EditPostButton
+              post={{
+                id: post.id,
+                title: post.title,
+                description: post.description as { type: string; text: string }[] | null,
+                url: post.url,
+                canEdit,
+              }}
+            />
+            {canEdit && <DeletePostButton postId={post.id} title={post.title} />}
+          </div>
         </div>
         <div className="mt-5 flex items-center gap-3 text-sm text-ink-faint">
           <span className="flex items-center gap-1.5">

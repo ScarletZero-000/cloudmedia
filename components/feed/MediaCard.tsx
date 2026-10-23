@@ -4,8 +4,17 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { PostDTO } from "@/types";
 import RichText from "@/components/editor/RichText";
 import { MessageCircle, BadgeCheck } from "lucide-react";
+import DeletePostButton from "@/components/feed/DeletePostButton";
 
-export default function MediaCard({ post, index }: { post: PostDTO; index: number }) {
+export default function MediaCard({
+  post,
+  index,
+  canDelete = false,
+}: {
+  post: PostDTO;
+  index: number;
+  canDelete?: boolean;
+}) {
   const reduce = useReducedMotion();
 
   return (
@@ -28,6 +37,11 @@ export default function MediaCard({ post, index }: { post: PostDTO; index: numbe
       </a>
 
       <div className="flex flex-1 flex-col gap-3 p-6">
+        {canDelete && (
+          <div className="flex justify-end">
+            <DeletePostButton postId={post.id} title={post.title} className="!px-0" />
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <p className="label-caps">
             {post.album ? post.album.title : post.type.toLowerCase()}
