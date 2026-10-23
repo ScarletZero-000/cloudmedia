@@ -6,13 +6,23 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+  adjustFontFallback: true,
 });
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
+  weight: ["700", "800"],
   variable: "--font-serif",
   display: "swap",
+  adjustFontFallback: true,
 });
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5, // allow pinch-zoom (accessibility) but prevent janky auto-zoom on input focus on iOS
+  themeColor: "#0C0C0C",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL ?? "https://www.scarletimutt.my.id"),
@@ -42,7 +52,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body className="bg-paper text-ink font-sans antialiased">
+      <body className="min-h-dvh bg-paper text-ink font-sans antialiased [-webkit-tap-highlight-color:transparent]">
         {children}
       </body>
     </html>

@@ -16,13 +16,14 @@ export default function MediaCard({ post, index }: { post: PostDTO; index: numbe
       transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
       className="card-line group flex flex-col"
     >
-      <a href={`/post/${post.id}`} className="block overflow-hidden border-b border-line">
+      <a href={`/post/${post.id}`} className="block overflow-hidden border-b-2 border-ink">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={post.url}
           alt={post.title}
           loading="lazy"
-          className="aspect-[4/3] w-full object-cover transition-transform duration-500 ease-out-expo group-hover:scale-[1.02]"
+          decoding="async"
+          className="aspect-[4/3] w-full object-cover will-change-transform transition-transform duration-500 ease-out-expo group-hover:scale-[1.02]"
         />
       </a>
 

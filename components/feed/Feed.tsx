@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { PostDTO } from "@/types";
 import MediaCard from "@/components/feed/MediaCard";
 import { ArrowDown, LoaderCircle } from "lucide-react";
@@ -11,9 +11,13 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(!initialCursor);
+  const reduce = useReducedMotion();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
 
   const loadMore = useCallback(async () => {
-    if (loading || done || !cursor) return;
+    if (loadingRef.current || done || !cursor) return;
+    loadingRef.current = true;
     setLoading(true);
     try {
       const res = await fetch(`/api/posts?cursor=${cursor}&limit=12`);
@@ -22,25 +26,30 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
       setCursor(data.nextCursor);
       if (!data.nextCursor) setDone(true);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [cursor, loading, done]);
+  }, [cursor, done]);
 
-  // auto-load on scroll near bottom
+  // IntersectionObserver instead of scroll listener:
+  // fires off the main thread, doesn't jank scrolling on low-end phones.
   useEffect(() => {
-    const onScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 600) {
-        loadMore();
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [loadMore]);
+    const el = sentinelRef.current;
+    if (!el || done) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: "800px 0px" } // prefetch well before reaching the bottom
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore, done]);
 
   return (
     <div className="container-classic py-16 md:py-24">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={reduce ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="mb-16 max-w-2xl"
@@ -55,12 +64,15 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
       {posts.length === 0 ? (
         <p className="text-ink-faint">Nothing here yet. Be the first to upload.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((post, i) => (
             <MediaCard key={post.id} post={post} index={i} />
           ))}
         </div>
       )}
+
+      {/* sentinel for infinite scroll */}
+      <div ref={sentinelRef} aria-hidden className="h-px" />
 
       <div className="mt-16 flex justify-center">
         {loading ? (
