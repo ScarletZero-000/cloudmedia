@@ -14,23 +14,27 @@ const config: Config = {
       },
       colors: {
         ink: {
-          DEFAULT: "#111111",
-          soft: "#444444",
-          faint: "#888888",
+          DEFAULT: "#0C0C0C",
+          soft: "#3D3D3D",
+          faint: "#8A8A85",
         },
         paper: {
-          DEFAULT: "#FAFAF8",
+          DEFAULT: "#F7F6F2",
           raised: "#FFFFFF",
-          dim: "#F0F0EC",
+          dim: "#EFEDE7",
         },
         line: {
-          DEFAULT: "#E5E5E0",
-          strong: "#D4D4CC",
+          DEFAULT: "#E2E1DA",
+          strong: "#C9C8BF",
+        },
+        accent: {
+          DEFAULT: "#B3401E", // burnt sienna — warm editorial red
+          hover: "#96341A",
         },
       },
       letterSpacing: {
-        tightest: "-0.03em",
-        caps: "0.08em",
+        tightest: "-0.035em",
+        caps: "0.1em",
       },
       transitionTimingFunction: {
         "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)",

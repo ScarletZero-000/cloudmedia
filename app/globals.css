@@ -14,8 +14,11 @@
     text-rendering: optimizeLegibility;
   }
   ::selection {
-    background: #111111;
-    color: #fafaf8;
+    background: #b3401e;
+    color: #f7f6f2;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
   }
 }
 
@@ -24,15 +27,22 @@
     @apply mx-auto w-full max-w-6xl px-6 md:px-10;
   }
   .heading-classic {
-    @apply font-serif tracking-tightest leading-tight;
+    @apply font-serif tracking-tightest leading-[1.05];
   }
   .label-caps {
     @apply text-[11px] uppercase tracking-caps text-ink-faint font-medium;
   }
   .btn-classic {
     @apply inline-flex items-center gap-2 border border-ink px-5 py-2.5 text-sm font-medium
-      transition-colors duration-200 hover:bg-ink hover:text-paper
+      transition-all duration-200 hover:bg-ink hover:text-paper hover:-translate-y-px
+      active:translate-y-0
       focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink;
+  }
+  .btn-accent {
+    @apply inline-flex items-center gap-2 border border-accent bg-accent px-5 py-2.5 text-sm font-medium text-paper
+      transition-all duration-200 hover:bg-accent-hover hover:border-accent-hover hover:-translate-y-px
+      active:translate-y-0
+      focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
   }
   .btn-ghost {
     @apply inline-flex items-center gap-2 border border-line-strong px-5 py-2.5 text-sm font-medium
@@ -44,6 +54,10 @@
       placeholder:text-ink-faint focus:border-ink focus:outline-none transition-colors;
   }
   .card-line {
-    @apply border border-line bg-paper-raised;
+    @apply border border-line bg-paper-raised transition-colors duration-300 hover:border-ink-soft;
+  }
+  /* editorial rule: short accent bar above section headings */
+  .rule-accent {
+    @apply mb-4 block h-[3px] w-10 bg-accent;
   }
 }

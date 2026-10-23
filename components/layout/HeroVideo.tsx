@@ -7,7 +7,7 @@ import { motion, useReducedMotion } from "framer-motion";
  * Hero image, Clean Classic framing:
  * - thick solid black border on TOP only (border-t-4 border-ink)
  * - black pillarboxing on left/right (bg-ink + inner horizontal padding)
- * - source image is square (736x736) — rendered square, sized responsively
+ * - source image is 736x414 (16:9-ish landscape) — full-bleed width
  */
 export default function HeroVideo() {
   const reduce = useReducedMotion();
@@ -26,10 +26,10 @@ export default function HeroVideo() {
           src="/hero.jpg"
           alt="Featured image"
           width={736}
-          height={736}
+          height={414}
           priority
-          className="mx-auto h-auto w-full max-w-xl"
-          sizes="(min-width: 768px) 576px, calc(100vw - 64px)"
+          className="mx-auto h-auto w-full max-w-3xl"
+          sizes="(min-width: 768px) 768px, calc(100vw - 64px)"
         />
       </div>
     </motion.figure>
