@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
-  Users, Image as ImageIcon, MessageCircle, Eye, Trash2, ShieldCheck, ShieldOff,
-  Check, X, Clock,
+  Users, Image as ImageIcon, MessageCircle, Clock, Trash2, ShieldCheck, ShieldOff,
+  Check, X, TriangleAlert, CircleCheck,
 } from "lucide-react";
 
 type AdminUser = {
@@ -38,29 +38,38 @@ export default function AdminDashboard({
   pendingPosts: PendingPost[];
 }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const totals = {
     users: users.length,
     posts: posts.length,
     comments: posts.reduce((a, p) => a + p._count.comments, 0),
+    pending: pendingPosts.length,
   };
 
-  async function act(key: string, fn: () => Promise<any>) {
+  function flash(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2600);
+  }
+
+  async function act(key: string, okMsg: string, fn: () => Promise<any>) {
     setBusyId(key);
     try {
       await fn();
+      flash(okMsg);
       startTransition(() => router.refresh());
-    } catch (e) {
-      alert("Action failed. Check permissions and try again.");
+    } catch {
+      flash("Action failed — check permissions.");
     } finally {
       setBusyId(null);
     }
   }
 
   const setRole = (id: string, role: "ADMIN" | "USER") =>
-    act(`u-${id}`, () =>
+    act(`u-${id}`, role === "ADMIN" ? "User promoted to admin" : "User demoted", () =>
       fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -70,16 +79,16 @@ export default function AdminDashboard({
 
   const deleteUser = (id: string) => {
     if (!confirm("Delete this user and all their content?")) return;
-    act(`u-${id}`, () => fetch(`/api/admin/users?id=${id}`, { method: "DELETE" }));
+    act(`u-${id}`, "User deleted", () => fetch(`/api/admin/users?id=${id}`, { method: "DELETE" }));
   };
 
   const deletePost = (id: string) => {
     if (!confirm("Delete this image permanently?")) return;
-    act(`p-${id}`, () => fetch(`/api/posts/${id}`, { method: "DELETE" }));
+    act(`p-${id}`, "Image deleted", () => fetch(`/api/posts/${id}`, { method: "DELETE" }));
   };
 
   const approve = (id: string) =>
-    act(`pp-${id}`, () =>
+    act(`pp-${id}`, "Upload approved — now live in the feed", () =>
       fetch("/api/admin/posts/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,7 +98,7 @@ export default function AdminDashboard({
 
   const reject = (id: string) => {
     if (!confirm("Reject and delete this upload? The user will need to re-upload.")) return;
-    act(`pp-${id}`, () =>
+    act(`pp-${id}`, "Upload rejected", () =>
       fetch("/api/admin/posts/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,119 +109,143 @@ export default function AdminDashboard({
 
   return (
     <div className="container-classic py-16 md:py-24">
-      <div className="mb-16 max-w-2xl">
-        <p className="label-caps mb-4">Administration</p>
+      {/* header */}
+      <div className="mb-14 max-w-2xl">
+        <p className="label-caps mb-4 flex items-center gap-2">
+          <span className="inline-block h-2 w-2 bg-accent" aria-hidden />
+          Administration
+        </p>
         <h1 className="heading-classic text-4xl md:text-6xl">Console</h1>
         <p className="mt-5 text-ink-soft">
           Manage members, moderate uploads, and watch how the platform is used.
         </p>
       </div>
 
-      {/* Stats */}
+      {/* stats — hard cards */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={reduce ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="mb-20 grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4"
+        className="mb-20 grid grid-cols-2 gap-4 lg:grid-cols-4"
       >
-        <Stat icon={<Users className="h-4 w-4" strokeWidth={1.75} aria-hidden />} label="Users" value={totals.users} />
-        <Stat icon={<ImageIcon className="h-4 w-4" strokeWidth={1.75} aria-hidden />} label="Recent images" value={totals.posts} />
-        <Stat icon={<MessageCircle className="h-4 w-4" strokeWidth={1.75} aria-hidden />} label="Comments" value={totals.comments} />
-        <Stat icon={<Eye className="h-4 w-4" strokeWidth={1.75} aria-hidden />} label="Views / 30d" value="—" />
+        <Stat accent icon={<Users className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Users" value={totals.users} />
+        <Stat icon={<ImageIcon className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Uploads" value={totals.posts} />
+        <Stat icon={<MessageCircle className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Comments" value={totals.comments} />
+        <Stat
+          warn={totals.pending > 0}
+          icon={<Clock className="h-4 w-4" strokeWidth={2} aria-hidden />}
+          label="Pending"
+          value={totals.pending}
+        />
       </motion.div>
 
       {/* Pending approvals */}
       <section className="mb-20">
-        <h2 className="label-caps mb-6 flex items-center gap-2">
-          <Clock className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+        <h2 className="label-caps mb-6 flex items-center gap-2.5">
           Pending approvals
-          {pendingPosts.length > 0 && (
-            <span className="ml-1 border border-ink px-2 py-0.5 text-[11px]">{pendingPosts.length}</span>
+          {totals.pending > 0 ? (
+            <span className="border-2 border-accent bg-accent px-2 py-0.5 text-[11px] font-bold text-paper">
+              {totals.pending}
+            </span>
+          ) : (
+            <CircleCheck className="h-4 w-4 text-ink-faint" strokeWidth={2} aria-hidden />
           )}
         </h2>
         {pendingPosts.length === 0 ? (
-          <p className="text-sm text-ink-faint">Queue is clear. Nothing awaiting review.</p>
+          <div className="border-2 border-dashed border-line-strong px-6 py-10 text-center">
+            <p className="text-sm font-semibold text-ink-faint">Queue is clear — nothing awaiting review.</p>
+          </div>
         ) : (
-          <div className="grid gap-px border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {pendingPosts.map((p) => (
-              <div key={p.id} className="flex flex-col bg-paper-raised">
-                <div className="aspect-[4/3] overflow-hidden border-b border-line bg-paper-dim">
+              <motion.div
+                key={p.id}
+                initial={reduce ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="card-hard flex flex-col"
+              >
+                <div className="aspect-[4/3] overflow-hidden border-b-2 border-ink bg-paper-dim">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.url} alt={p.title} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={p.url} alt={p.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-5">
                   <h3 className="heading-classic text-lg">{p.title}</h3>
-                  <p className="text-xs text-ink-faint">
+                  <p className="text-xs font-medium text-ink-faint">
                     {p.author.name ?? "Anonymous"} · {p.author.email}
                   </p>
-                  <div className="mt-auto flex gap-2 pt-4">
+                  <div className="mt-auto flex gap-2.5 pt-5">
                     <button
                       onClick={() => approve(p.id)}
                       disabled={busyId === `pp-${p.id}` || pending}
-                      className="btn-classic flex-1 justify-center py-2 text-xs disabled:opacity-40"
+                      className="btn-accent flex-1 justify-center py-2.5 text-xs disabled:opacity-40"
                     >
-                      <Check className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                      <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
                       Approve
                     </button>
                     <button
                       onClick={() => reject(p.id)}
                       disabled={busyId === `pp-${p.id}` || pending}
-                      className="btn-ghost flex-1 justify-center py-2 text-xs disabled:opacity-40"
+                      className="btn-ghost flex-1 justify-center py-2.5 text-xs disabled:opacity-40"
                     >
-                      <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                      <X className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
                       Reject
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
       </section>
 
-      {/* Users */}
+      {/* Members */}
       <section className="mb-20">
         <h2 className="label-caps mb-6">Members</h2>
-        <div className="overflow-x-auto border border-line bg-paper-raised">
-          <table className="w-full text-sm">
+        <div className="card-line overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-line">
-                <th className="label-caps px-5 py-3 text-left font-medium">User</th>
-                <th className="label-caps px-5 py-3 text-left font-medium">Images</th>
-                <th className="label-caps px-5 py-3 text-left font-medium">Comments</th>
-                <th className="label-caps px-5 py-3 text-left font-medium">Role</th>
-                <th className="px-5 py-3" />
+              <tr className="border-b-2 border-ink bg-paper-dim">
+                <th className="label-caps px-5 py-3.5 text-left">User</th>
+                <th className="label-caps px-5 py-3.5 text-left">Images</th>
+                <th className="label-caps px-5 py-3.5 text-left">Comments</th>
+                <th className="label-caps px-5 py-3.5 text-left">Role</th>
+                <th className="px-5 py-3.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {users.map((u) => (
-                <tr key={u.id}>
+                <tr key={u.id} className="transition-colors hover:bg-paper-dim/60">
                   <td className="px-5 py-4">
-                    <div className="font-medium">{u.name ?? "—"}</div>
+                    <div className="font-bold">{u.name ?? "—"}</div>
                     <div className="text-xs text-ink-faint">{u.email}</div>
                   </td>
-                  <td className="px-5 py-4 text-ink-soft">{u._count.posts}</td>
-                  <td className="px-5 py-4 text-ink-soft">{u._count.comments}</td>
+                  <td className="px-5 py-4 font-semibold text-ink-soft">{u._count.posts}</td>
+                  <td className="px-5 py-4 font-semibold text-ink-soft">{u._count.comments}</td>
                   <td className="px-5 py-4">
-                    <span className="label-caps">{u.role}</span>
+                    <span className={`inline-block border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-caps ${
+                      u.role === "ADMIN" ? "border-accent text-accent" : "border-ink-soft text-ink-soft"
+                    }`}>
+                      {u.role}
+                    </span>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5">
                       <IconBtn
                         title={u.role === "ADMIN" ? "Demote to user" : "Promote to admin"}
                         disabled={busyId === `u-${u.id}` || pending}
                         onClick={() => setRole(u.id, u.role === "ADMIN" ? "USER" : "ADMIN")}
                       >
                         {u.role === "ADMIN"
-                          ? <ShieldOff className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                          : <ShieldCheck className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
+                          ? <ShieldOff className="h-4 w-4" strokeWidth={2} aria-hidden />
+                          : <ShieldCheck className="h-4 w-4" strokeWidth={2} aria-hidden />}
                       </IconBtn>
                       <IconBtn
-                        title="Delete user"
+                        title="Delete user" danger
                         disabled={busyId === `u-${u.id}` || pending}
                         onClick={() => deleteUser(u.id)}
                       >
-                        <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                        <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />
                       </IconBtn>
                     </div>
                   </td>
@@ -223,34 +256,40 @@ export default function AdminDashboard({
         </div>
       </section>
 
-      {/* Posts */}
+      {/* Uploads */}
       <section>
         <h2 className="label-caps mb-6">Recent uploads</h2>
-        <div className="overflow-x-auto border border-line bg-paper-raised">
-          <table className="w-full text-sm">
+        <div className="card-line overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-line">
-                <th className="label-caps px-5 py-3 text-left font-medium">Title</th>
-                <th className="label-caps px-5 py-3 text-left font-medium">Author</th>
-                <th className="label-caps px-5 py-3 text-left font-medium">Status</th>
-                <th className="label-caps px-5 py-3 text-left font-medium">Comments</th>
-                <th className="px-5 py-3" />
+              <tr className="border-b-2 border-ink bg-paper-dim">
+                <th className="label-caps px-5 py-3.5 text-left">Title</th>
+                <th className="label-caps px-5 py-3.5 text-left">Author</th>
+                <th className="label-caps px-5 py-3.5 text-left">Status</th>
+                <th className="label-caps px-5 py-3.5 text-left">Comments</th>
+                <th className="px-5 py-3.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {posts.map((p) => (
-                <tr key={p.id}>
-                  <td className="max-w-xs truncate px-5 py-4 font-medium">{p.title}</td>
-                  <td className="px-5 py-4 text-ink-soft">{p.author.name ?? "—"}</td>
-                  <td className="px-5 py-4"><span className="label-caps">{p.status}</span></td>
-                  <td className="px-5 py-4 text-ink-soft">{p._count.comments}</td>
+                <tr key={p.id} className="transition-colors hover:bg-paper-dim/60">
+                  <td className="max-w-xs truncate px-5 py-4 font-bold">{p.title}</td>
+                  <td className="px-5 py-4 font-medium text-ink-soft">{p.author.name ?? "—"}</td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-block border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-caps ${
+                      p.status === "APPROVED" ? "border-ink text-ink" : "border-accent text-accent"
+                    }`}>
+                      {p.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 font-semibold text-ink-soft">{p._count.comments}</td>
                   <td className="px-5 py-4 text-right">
                     <IconBtn
-                      title="Delete image"
+                      title="Delete image" danger
                       disabled={busyId === `p-${p.id}` || pending}
                       onClick={() => deletePost(p.id)}
                     >
-                      <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                      <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />
                     </IconBtn>
                   </td>
                 </tr>
@@ -259,33 +298,53 @@ export default function AdminDashboard({
           </table>
         </div>
       </section>
+
+      {/* toast */}
+      {toast && (
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 border-2 border-ink bg-ink px-5 py-3 text-sm font-bold text-paper shadow-[4px_4px_0_0_#b3401e]"
+          role="status"
+        >
+          {toast}
+        </motion.div>
+      )}
     </div>
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
+function Stat({
+  icon, label, value, accent, warn,
+}: {
+  icon: React.ReactNode; label: string; value: number | string; accent?: boolean; warn?: boolean;
+}) {
   return (
-    <div className="bg-paper-raised px-6 py-7">
-      <div className="mb-3 flex items-center gap-2 text-ink-faint">
+    <div className={`card-hard px-5 py-6 ${accent ? "bg-ink text-paper" : ""}`}>
+      <div className={`mb-3 flex items-center gap-2 ${accent ? "text-paper/60" : warn ? "text-accent" : "text-ink-faint"}`}>
         {icon}
-        <span className="label-caps">{label}</span>
+        <span className="label-caps" style={accent ? { color: "rgba(247,246,242,0.6)" } : undefined}>{label}</span>
       </div>
-      <p className="heading-classic text-3xl">{value}</p>
+      <p className={`heading-classic text-4xl ${warn && !accent ? "text-accent" : ""}`}>{value}</p>
     </div>
   );
 }
 
 function IconBtn({
-  children, title, onClick, disabled,
+  children, title, onClick, disabled, danger,
 }: {
-  children: React.ReactNode; title: string; onClick: () => void; disabled?: boolean;
+  children: React.ReactNode; title: string; onClick: () => void; disabled?: boolean; danger?: boolean;
 }) {
   return (
     <button
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className="p-2 text-ink-faint transition-colors hover:text-ink disabled:opacity-30"
+      className={`border p-2 transition-all disabled:opacity-30 ${
+        danger
+          ? "border-transparent text-ink-faint hover:border-accent hover:text-accent"
+          : "border-transparent text-ink-faint hover:border-ink hover:text-ink"
+      }`}
     >
       {children}
     </button>
