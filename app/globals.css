@@ -4,7 +4,6 @@
 
 :root {
   --header-h: 4rem;
-  --noise-opacity: 0.035;
 }
 
 @layer base {
@@ -23,12 +22,10 @@
   h1, h2, h3 {
     text-wrap: balance;
   }
-  /* refined focus ring site-wide */
   :focus-visible {
     outline: 2px solid #0c0c0c;
     outline-offset: 2px;
   }
-  /* thin scrollbar, editorial */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: #f7f6f2; }
   ::-webkit-scrollbar-thumb { background: #c9c8bf; border: 3px solid #f7f6f2; border-radius: 8px; }
@@ -39,55 +36,59 @@
   .container-classic {
     @apply mx-auto w-full max-w-6xl px-6 md:px-10;
   }
+  /* BOLD: headings heavy, ink-black */
   .heading-classic {
-    @apply font-serif tracking-tightest leading-[1.05];
+    @apply font-serif tracking-tightest leading-[1.05] font-bold text-ink;
   }
   .label-caps {
-    @apply text-[11px] uppercase tracking-caps text-ink-faint font-medium;
+    @apply text-[11px] uppercase tracking-caps text-ink-soft font-bold;
   }
+  /* BOLD: 2px borders on every control */
   .btn-classic {
-    @apply inline-flex items-center gap-2 border border-ink px-5 py-2.5 text-sm font-medium
+    @apply inline-flex items-center gap-2 border-2 border-ink px-5 py-2.5 text-sm font-bold
       transition-all duration-200 hover:bg-ink hover:text-paper hover:-translate-y-px
       active:translate-y-0
       focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink;
   }
   .btn-accent {
-    @apply inline-flex items-center gap-2 border border-accent bg-accent px-5 py-2.5 text-sm font-medium text-paper
+    @apply inline-flex items-center gap-2 border-2 border-accent bg-accent px-5 py-2.5 text-sm font-bold text-paper
       transition-all duration-200 hover:bg-accent-hover hover:border-accent-hover hover:-translate-y-px
       active:translate-y-0
       focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 border border-line-strong px-5 py-2.5 text-sm font-medium
+    @apply inline-flex items-center gap-2 border-2 border-ink-soft px-5 py-2.5 text-sm font-bold
       transition-colors duration-200 hover:border-ink
       focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink;
   }
   .input-classic {
-    @apply w-full border border-line-strong bg-paper-raised px-4 py-2.5 text-sm
+    @apply w-full border-2 border-ink-soft bg-paper-raised px-4 py-2.5 text-sm font-medium
       placeholder:text-ink-faint focus:border-ink focus:outline-none transition-colors;
   }
+  /* BOLD: 2px ink border + hard offset shadow, lifts on hover with sienna shadow */
   .card-line {
-    @apply border border-line bg-paper-raised transition-all duration-300 hover:border-ink-soft hover:shadow-[0_2px_0_0_#0c0c0c];
+    @apply border-2 border-ink bg-paper-raised transition-all duration-300
+      hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#b3401e];
   }
-  /* editorial rule: short accent bar above section headings */
+  .card-hard {
+    @apply border-2 border-ink bg-paper-raised shadow-[4px_4px_0_0_#0c0c0c]
+      transition-all duration-300 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#b3401e];
+  }
   .rule-accent {
-    @apply mb-4 block h-[3px] w-10 bg-accent;
+    @apply mb-4 block h-1 w-12 bg-accent;
   }
-  /* headline with inline accent word support: <em> renders sienna serif italic */
   .heading-classic em {
     @apply not-italic text-accent;
   }
-  /* drop cap for blog/article prose */
   .prose-classic > p:first-of-type::first-letter {
-    @apply float-left mr-3 font-serif text-6xl leading-[0.8] text-accent;
+    @apply float-left mr-3 font-serif text-6xl leading-[0.8] font-bold text-accent;
   }
-  /* underline-on-hover links, classic editorial */
   .link-underline {
-    @apply relative;
+    @apply relative font-semibold;
   }
   .link-underline::after {
     content: "";
-    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-ink transition-all duration-300;
+    @apply absolute -bottom-0.5 left-0 h-[2px] w-0 bg-accent transition-all duration-300;
   }
   .link-underline:hover::after {
     @apply w-full;
@@ -95,7 +96,6 @@
 }
 
 @layer utilities {
-  /* stagger reveal helper for framer-motion lists */
   .stagger > * {
     transition-delay: calc(var(--i, 0) * 60ms);
   }
