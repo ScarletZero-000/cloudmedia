@@ -26,7 +26,7 @@ async function main() {
     },
   });
 
-  const users = [];
+  const users: Awaited<ReturnType<typeof prisma.user.upsert>>[] = [];
   for (const n of ["alya", "raka", "nadia"]) {
     users.push(
       await prisma.user.upsert({
