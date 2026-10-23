@@ -37,7 +37,7 @@ model User {
   passwordHash   String?   // credentials auth
   role           Role      @default(USER)
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updated_at
+  updatedAt      DateTime  @updatedAt
 
   posts     Post[]
   comments  Comment[]
@@ -64,7 +64,7 @@ model Post {
   authorId    String
   albumId     String?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updated_at
+  updatedAt   DateTime  @updatedAt
 
   author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   album    Album?  @relation(fields: [albumId], references: [id], onDelete: SetNull)
@@ -83,7 +83,7 @@ model Album {
   coverUrl    String?  // cover image blob url
   authorId    String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updated_at
+  updatedAt   DateTime @updatedAt
 
   author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   posts  Post[]
@@ -98,7 +98,7 @@ model Comment {
   authorId  String
   postId    String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updated_at
+  updatedAt DateTime @updatedAt
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
