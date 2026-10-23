@@ -9,6 +9,7 @@ import RichText from "@/components/editor/RichText";
 import CommentSection from "@/components/feed/CommentSection";
 import EditPostButton from "@/components/feed/EditPostButton";
 import DeletePostButton from "@/components/feed/DeletePostButton";
+import LikeAndViewBar from "@/components/feed/LikeAndViewBar";
 import { ArrowLeft, BadgeCheck } from "lucide-react";
 import type { RichBlock } from "@/types";
 
@@ -68,7 +69,7 @@ export default async function PostPage({
     include: {
       author: { select: { id: true, name: true, image: true, role: true } },
       album: { select: { id: true, title: true } },
-      _count: { select: { comments: true } },
+      _count: { select: { comments: true, likes: true } },
     },
   });
 
@@ -131,6 +132,9 @@ export default async function PostPage({
           </time>
           <span aria-hidden>·</span>
           <span>{post._count.comments} comments</span>
+        </div>
+        <div className="mt-5">
+          <LikeAndViewBar postId={post.id} initialLikes={post._count.likes} initialViews={post.views} />
         </div>
       </header>
 

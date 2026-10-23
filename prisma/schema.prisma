@@ -41,12 +41,27 @@ model User {
 
   posts     Post[]
   comments  Comment[]
+  likes     Like[]
   albums    Album[]
   sessions  Session[]
   accounts  Account[]
 
   @@index([email])
   @@map("users")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@map("likes")
 }
 
 model Post {
@@ -70,6 +85,8 @@ model Post {
   author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   album    Album?  @relation(fields: [albumId], references: [id], onDelete: SetNull)
   comments Comment[]
+  likes    Like[]
+  views    Int      @default(0)
 
   @@index([authorId])
   @@index([albumId])
