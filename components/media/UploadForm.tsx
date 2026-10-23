@@ -11,6 +11,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [albumId, setAlbumId] = useState("");
+  const [tags, setTags] = useState("");
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -31,6 +32,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
     if (title) fd.append("title", title);
     if (desc.trim()) fd.append("description", JSON.stringify([{ type: "paragraph", text: desc.trim() }]));
     if (albumId) fd.append("albumId", albumId);
+    if (tags.trim()) fd.append("tags", tags);
 
     try {
       const res = await fetch("/api/upload", { method: "POST", body: fd });
@@ -111,6 +113,17 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
             placeholder="Short description — shown under the title and used as the WhatsApp link preview text."
           />
           <p className="mt-1.5 text-[11px] text-ink-faint">{desc.length}/500</p>
+        </div>
+        <div>
+          <label htmlFor="tags" className="label-caps mb-2 block">Tags (optional)</label>
+          <input
+            id="tags"
+            className="input-classic"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="anime, wallpaper, scenery — comma separated"
+          />
+          <p className="mt-1.5 text-[11px] text-ink-faint">Up to 5 tags, lowercase. Searchable in the feed.</p>
         </div>
         {albums.length > 0 && (
           <div>

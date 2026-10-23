@@ -11,6 +11,7 @@ import EditPostButton from "@/components/feed/EditPostButton";
 import DeletePostButton from "@/components/feed/DeletePostButton";
 import LikeAndViewBar from "@/components/feed/LikeAndViewBar";
 import PostActions from "@/components/feed/PostActions";
+import ShareButton from "@/components/feed/ShareButton";
 import { ArrowLeft, BadgeCheck } from "lucide-react";
 import type { RichBlock } from "@/types";
 
@@ -138,6 +139,7 @@ export default async function PostPage({
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <LikeAndViewBar postId={post.id} initialLikes={post._count.likes} initialViews={post.views} />
           <PostActions url={post.url} title={post.title} />
+          <ShareButton title={post.title} />
         </div>
       </header>
 
@@ -153,6 +155,16 @@ export default async function PostPage({
           sizes="(min-width: 1120px) 1120px, 100vw"
         />
       </figure>
+
+      {post.tags && post.tags.length > 0 && (
+        <div className="mx-auto max-w-2xl flex flex-wrap gap-2 pt-8">
+          {post.tags.map((t) => (
+            <Link key={t} href={`/feed?tag=${encodeURIComponent(t)}`} className="border-2 border-ink-soft bg-paper-raised px-2.5 py-1 text-[11px] font-bold text-ink-soft transition-colors hover:border-accent hover:text-accent">
+              #{t}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {description && description.length > 0 && (
         <div className="mx-auto max-w-2xl py-12">

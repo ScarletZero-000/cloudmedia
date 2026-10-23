@@ -5,7 +5,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { PostDTO } from "@/types";
 import { useSession } from "next-auth/react";
 import MediaCard from "@/components/feed/MediaCard";
-import { ArrowDown, LoaderCircle, Search, X } from "lucide-react";
+import { ArrowDown, LoaderCircle, Search, X, UsersRound } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 export default function Feed({ initialPosts, initialCursor }: { initialPosts: PostDTO[]; initialCursor: string | null }) {
   const { data: session } = useSession();
@@ -16,6 +17,8 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
   const [done, setDone] = useState(!initialCursor);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"new" | "top">("new");
+  const [scope, setScope] = useState<"all" | "following">("all");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const reduce = useReducedMotion();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
@@ -28,6 +31,8 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
     try {
       const params = new URLSearchParams({ cursor: cursor, limit: "12", sort });
       if (query) params.set("q", query);
+      if (scope === "following") params.set("scope", "following");
+      if (activeTag) params.set("tag", activeTag);
       const res = await fetch(`/api/posts?${params}`);
       const data = await res.json();
       setPosts((p) => [...p, ...data.posts]);
@@ -41,11 +46,13 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
 
   // reload from the top when search/sort changes (debounced 350ms for typing)
   const reload = useCallback(
-    (q: string, s: "new" | "top") => {
+    (q: string, s: "new" | "top", sc: "all" | "following" = "all", tg: string | null = null) => {
       loadingRef.current = true;
       setLoading(true);
       const params = new URLSearchParams({ limit: "12", sort: s });
       if (q) params.set("q", q);
+      if (sc === "following") params.set("scope", "following");
+      if (tg) params.set("tag", tg);
       fetch(`/api/posts?${params}`)
         .then((r) => r.json())
         .then((data) => {
@@ -78,6 +85,17 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+  }, []);
+
+  // deep link support: /feed?tag=anime pre-filters the feed
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const t = searchParams.get("tag");
+    if (t) {
+      setActiveTag(t);
+      reload("", "new", "all", t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // restore scroll position when coming BACK to the feed (bfcache usually
@@ -157,6 +175,24 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
             </button>
           )}
         </div>
+        {me && (
+          <button
+            onClick={() => {
+              const next = scope === "all" ? "following" : "all";
+              setScope(next);
+              reload(query.trim(), sort, next, activeTag);
+            }}
+            aria-pressed={scope === "following"}
+            className={`inline-flex items-center gap-1.5 border-2 px-4 py-2.5 text-xs font-bold transition-colors ${
+              scope === "following"
+                ? "border-accent bg-accent text-paper"
+                : "border-ink-soft bg-paper-raised text-ink-soft hover:border-ink hover:text-ink"
+            }`}
+          >
+            <UsersRound className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+            Following
+          </button>
+        )}
         <div className="flex gap-0" role="tablist" aria-label="Sort feed">
           {(["new", "top"] as const).map((s) => (
             <button
@@ -175,6 +211,19 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
           ))}
         </div>
       </div>
+
+      {activeTag && (
+        <button
+          onClick={() => {
+            setActiveTag(null);
+            reload(query.trim(), sort, scope, null);
+          }}
+          className="mb-8 inline-flex items-center gap-2 border-2 border-accent bg-accent/5 px-3 py-1.5 text-xs font-bold text-accent"
+        >
+          #{activeTag}
+          <X className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+        </button>
+      )}
 
       {posts.length === 0 ? (
         <div className="border-2 border-dashed border-line-strong px-6 py-16 text-center">

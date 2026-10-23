@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import ConfirmDialog, { type ConfirmState } from "@/components/ui/ConfirmDialog";
 import {
-  Users, Image as ImageIcon, MessageCircle, Clock, Trash2, ShieldCheck, ShieldOff, Megaphone, LoaderCircle,
+  Users, Image as ImageIcon, MessageCircle, Clock, Trash2, ShieldCheck, ShieldOff, Megaphone, LoaderCircle, Ban,
   Check, X, TriangleAlert, CircleCheck,
 } from "lucide-react";
 
 type AdminUser = {
   id: string; name: string | null; email: string; role: "ADMIN" | "USER";
   createdAt: string | Date;
+  isBanned?: boolean;
   _count: { posts: number; comments: number };
 };
 
@@ -73,6 +74,17 @@ export default function AdminDashboard({
       setBusyId(null);
     }
   }
+
+  const setBan = (id: string, banned: boolean) =>
+    act(`b-${id}`, banned ? "User banned — they can no longer upload, comment or like" : "User unbanned", () =>
+      banned
+        ? fetch("/api/admin/users/ban", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+          })
+        : fetch(`/api/admin/users/ban?id=${id}`, { method: "DELETE" })
+    );
 
   const setRole = (id: string, role: "ADMIN" | "USER") =>
     act(`u-${id}`, role === "ADMIN" ? "User promoted to admin" : "User demoted", () =>
@@ -348,6 +360,11 @@ export default function AdminDashboard({
                     }`}>
                       {u.role}
                     </span>
+                    {u.isBanned && (
+                      <span className="ml-1.5 inline-block border-2 border-red-600 bg-red-600/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-caps text-red-600">
+                        Banned
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1.5">
@@ -359,6 +376,13 @@ export default function AdminDashboard({
                         {u.role === "ADMIN"
                           ? <ShieldOff className="h-4 w-4" strokeWidth={2} aria-hidden />
                           : <ShieldCheck className="h-4 w-4" strokeWidth={2} aria-hidden />}
+                      </IconBtn>
+                      <IconBtn
+                        title={u.isBanned ? "Unban user" : "Ban user (blocks uploads, comments and likes)"}
+                        disabled={busyId === `b-${u.id}` || pending || u.role === "ADMIN"}
+                        onClick={() => setBan(u.id, !u.isBanned)}
+                      >
+                        <Ban className="h-4 w-4" strokeWidth={2} aria-hidden />
                       </IconBtn>
                       <IconBtn
                         title="Delete user" danger

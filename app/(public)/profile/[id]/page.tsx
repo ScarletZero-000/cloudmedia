@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import FollowButton from "@/components/profile/FollowButton";
 import ProfileEditor from "@/components/profile/ProfileEditor";
 import MediaCard from "@/components/feed/MediaCard";
 import { BadgeCheck } from "lucide-react";
@@ -23,7 +24,7 @@ export default async function ProfilePage({
     where: { id: params.id },
     select: {
       id: true, name: true, image: true, role: true, createdAt: true,
-      _count: { select: { posts: true, comments: true } },
+      _count: { select: { posts: true, comments: true, followersIn: true } },
     },
   });
   if (!user) notFound();
@@ -68,6 +69,7 @@ export default async function ProfilePage({
           <div className="mt-4 flex gap-6 text-sm">
             <span><b className="font-bold">{user._count.posts}</b> <span className="text-ink-faint">uploads</span></span>
             <span><b className="font-bold">{user._count.comments}</b> <span className="text-ink-faint">comments</span></span>
+            <span><b className="font-bold">{user._count.followersIn}</b> <span className="text-ink-faint">followers</span></span>
             {user.role === "ADMIN" && (
               <span className="border-2 border-accent px-2 py-0.5 text-[11px] font-bold uppercase tracking-caps text-accent">
                 Admin
@@ -75,7 +77,10 @@ export default async function ProfilePage({
             )}
           </div>
         </div>
-        <ProfileEditor userId={user.id} initialName={user.name} initialImage={user.image} />
+        <div className="flex shrink-0 flex-col items-start gap-3">
+          <ProfileEditor userId={user.id} initialName={user.name} initialImage={user.image} />
+          <FollowButton userId={user.id} />
+        </div>
       </section>
 
       {/* their uploads */}

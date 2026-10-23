@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import Feed from "@/components/feed/Feed";
 import type { PostDTO } from "@/types";
@@ -20,9 +21,12 @@ export default async function FeedPage() {
   const items = hasMore ? posts.slice(0, 12) : posts;
 
   return (
-    <Feed
-      initialPosts={JSON.parse(JSON.stringify(items)) as PostDTO[]}
-      initialCursor={hasMore ? items[items.length - 1].id : null}
-    />
+    // Suspense wraps Feed because it reads ?tag= via useSearchParams
+    <Suspense fallback={<div className="container-classic py-24 text-sm text-ink-faint">Loading feed…</div>}>
+      <Feed
+        initialPosts={JSON.parse(JSON.stringify(items)) as PostDTO[]}
+        initialCursor={hasMore ? items[items.length - 1].id : null}
+      />
+    </Suspense>
   );
 }

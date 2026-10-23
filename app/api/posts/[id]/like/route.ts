@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
+import { isBanned } from "@/lib/ban";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,10 @@ export async function POST(
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (await isBanned(session.user.id)) {
+    return NextResponse.json({ error: "Your account is banned. Contact an admin." }, { status: 403 });
+  }
 
   const post = await prisma.post.findUnique({ where: { id: params.id }, select: { id: true, authorId: true } });
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -12,6 +14,21 @@ export async function GET(req: NextRequest) {
   const authorId = searchParams.get("authorId") ?? undefined;
   const q = searchParams.get("q")?.trim();
   const sort = searchParams.get("sort") === "top" ? "top" : "new";
+  const tag = searchParams.get("tag")?.trim();
+  const scope = searchParams.get("scope") === "following" ? "following" : "all";
+
+  // following scope: only posts from people I follow
+  let followIds: string[] | null = null;
+  if (scope === "following") {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ posts: [], nextCursor: null });
+    const follows = await prisma.follow.findMany({
+      where: { followerId: session.user.id },
+      select: { followingId: true },
+    });
+    followIds = follows.map((f) => f.followingId);
+    if (followIds.length === 0) return NextResponse.json({ posts: [], nextCursor: null });
+  }
 
   // "top" = most liked in the last 7 days; Prisma can't order by relation count
   // with a cursor cleanly, so we fetch a window and sort in memory.
@@ -27,6 +44,8 @@ export async function GET(req: NextRequest) {
           { author: { name: { contains: q, mode: "insensitive" } } },
         ],
       }),
+      ...(tag && { tags: { has: tag.toLowerCase() } }),
+      ...(followIds && { authorId: { in: followIds } }),
     },
     include: {
       author: { select: { id: true, name: true, image: true, role: true } },

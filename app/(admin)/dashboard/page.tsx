@@ -9,6 +9,7 @@ export default async function AdminDashboardPage() {
     prisma.user.findMany({
       select: {
         id: true, name: true, email: true, role: true, createdAt: true,
+        ban: { select: { id: true } },
         _count: { select: { posts: true, comments: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -37,5 +38,10 @@ export default async function AdminDashboardPage() {
     }),
   ]);
 
-  return <AdminDashboard users={users} posts={posts} pendingPosts={pendingPosts} albums={albums} />;
+  return <AdminDashboard
+    users={users.map((u) => ({ ...u, isBanned: Boolean(u.ban) }))}
+    posts={posts}
+    pendingPosts={pendingPosts}
+    albums={albums}
+  />;
 }

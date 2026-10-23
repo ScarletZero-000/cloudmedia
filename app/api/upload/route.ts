@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyTelegram } from "@/lib/telegram";
+import { isBanned } from "@/lib/ban";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (await isBanned(session.user.id)) {
+    return NextResponse.json({ error: "Your account is banned. Contact an admin." }, { status: 403 });
   }
 
   try {
@@ -60,6 +65,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // tags: comma-separated, max 5, lowercase, slug-safe
+    const rawTags = ((formData.get("tags") as string | null) ?? "")
+      .split(",")
+      .map((t) => t.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ""))
+      .filter(Boolean);
+    const tagList = Array.from(new Set(rawTags)).slice(0, 5);
+
     if (albumId) {
       const album = await prisma.album.findUnique({ where: { id: albumId } });
       if (!album || album.authorId !== session.user.id) {
@@ -95,6 +107,7 @@ export async function POST(req: NextRequest) {
         title: title || file.name.replace(/\.[^.]+$/, ""),
         slug,
         ...(description ? { description } : {}),
+        ...(tagList.length ? { tags: tagList } : {}),
         type,
         url: blob.url,
         size: file.size,
