@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function classify(mime: string): { type: "IMAGE" | "VIDEO" | null; ext: string } {
+function classify(mime: string): { type: "IMAGE" | null; ext: string } {
   if (ALLOWED_IMAGE.includes(mime)) return { type: "IMAGE", ext: mime.split("/")[1] };
   return { type: null, ext: "" };
 }
