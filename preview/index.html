@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudMedia — Preview</title>
+<style>
+  :root {
+    --ink:#111111; --ink-soft:#444444; --ink-faint:#888888;
+    --paper:#FAFAF8; --paper-raised:#FFFFFF; --paper-dim:#F0F0EC;
+    --line:#E5E5E0; --line-strong:#D4D4CC;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    font-family: Inter, -apple-system, "Segoe UI", sans-serif;
+    background:var(--paper); color:var(--ink);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  .serif { font-family:"Playfair Display", Georgia, serif; letter-spacing:-0.03em; line-height:1.15; }
+  ::selection { background:var(--ink); color:var(--paper); }
+
+  .container { max-width:1120px; margin:0 auto; padding:0 24px; }
+  @media(min-width:768px){ .container{ padding:0 40px; } }
+
+  /* ===== header ===== */
+  header {
+    position:sticky; top:0; z-index:40;
+    background:rgba(250,250,248,.96); border-bottom:1px solid var(--line);
+  }
+  .header-inner { height:64px; display:flex; align-items:center; justify-content:space-between; }
+  .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); }
+  .brand svg { width:20px; height:20px; }
+  .brand span { font-family:"Playfair Display",Georgia,serif; font-size:19px; letter-spacing:-0.03em; }
+  nav { display:flex; align-items:center; gap:24px; }
+  nav a { font-size:14px; color:var(--ink-soft); text-decoration:none; transition:color .2s; }
+  nav a:hover { color:var(--ink); }
+  .btn {
+    display:inline-flex; align-items:center; gap:8px;
+    border:1px solid var(--ink); padding:10px 20px; font-size:14px; font-weight:500;
+    color:var(--ink); text-decoration:none; background:transparent; cursor:pointer;
+    transition:background .2s, color .2s; font-family:inherit;
+  }
+  .btn:hover { background:var(--ink); color:var(--paper); }
+  .btn-ghost { border-color:var(--line-strong); }
+  .btn-ghost:hover { background:transparent; color:var(--ink); border-color:var(--ink); }
+
+  /* ===== hero ===== */
+  .hero { padding:96px 0 64px; max-width:640px; }
+  .label {
+    font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--ink-faint); font-weight:500;
+  }
+  .hero .label { margin-bottom:16px; }
+  .hero h1 { font-size:clamp(40px,7vw,64px); margin-bottom:20px; }
+  .hero p { color:var(--ink-soft); font-size:16px; line-height:1.65; }
+
+  /* ===== tabs (preview nav) ===== */
+  .viewbar { display:flex; gap:0; border:1px solid var(--line-strong); width:max-content; margin-bottom:56px; }
+  .viewbar button {
+    border:none; background:transparent; padding:10px 22px; font-size:13px; font-weight:500;
+    cursor:pointer; color:var(--ink-faint); font-family:inherit; border-right:1px solid var(--line);
+    transition:color .2s, background .2s;
+  }
+  .viewbar button:last-child { border-right:none; }
+  .viewbar button.active { background:var(--ink); color:var(--paper); }
+  .viewbar button:not(.active):hover { color:var(--ink); }
+
+  /* ===== grid ===== */
+  .grid { display:grid; grid-template-columns:1fr; gap:32px; padding-bottom:96px; }
+  @media(min-width:640px){ .grid{ grid-template-columns:repeat(2,1fr); } }
+  @media(min-width:1024px){ .grid{ grid-template-columns:repeat(3,1fr); } }
+
+  .card { border:1px solid var(--line); background:var(--paper-raised); display:flex; flex-direction:column;
+    opacity:0; transform:translateY(24px); animation:rise .6s cubic-bezier(.16,1,.3,1) forwards; }
+  .card:nth-child(2){ animation-delay:.08s; } .card:nth-child(3){ animation-delay:.16s; }
+  .card:nth-child(4){ animation-delay:.24s; } .card:nth-child(5){ animation-delay:.32s; }
+  .card:nth-child(6){ animation-delay:.40s; }
+  @keyframes rise { to { opacity:1; transform:none; } }
+  .card-img { aspect-ratio:4/3; overflow:hidden; border-bottom:1px solid var(--line); background:var(--paper-dim); }
+  .card-img img { width:100%; height:100%; object-fit:cover; display:block;
+    transition:transform .5s cubic-bezier(.16,1,.3,1); }
+  .card:hover .card-img img { transform:scale(1.02); }
+  .card-body { padding:24px; display:flex; flex-direction:column; gap:12px; flex:1; }
+  .card-meta { display:flex; justify-content:space-between; align-items:center; }
+  .card-count { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-faint); }
+  .card-count svg { width:14px; height:14px; }
+  .card h3 { font-size:20px; font-weight:600; }
+  .card-desc { font-size:14px; line-height:1.6; color:var(--ink-soft); }
+  .card-desc strong { color:var(--ink); }
+  .card-foot { margin-top:auto; padding-top:8px; display:flex; justify-content:space-between; font-size:13px; color:var(--ink-faint); }
+
+  /* quote block in card */
+  .quote { border-left:2px solid var(--ink); padding-left:16px; font-family:Georgia,serif; font-style:italic; color:var(--ink); }
+
+  /* ===== upload view ===== */
+  .upload-wrap { max-width:576px; padding-bottom:96px; }
+  .drop {
+    border:1px dashed var(--line-strong); padding:64px 32px; text-align:center; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:12px; transition:border-color .2s, background .2s;
+  }
+  .drop:hover { border-color:var(--ink); }
+  .drop svg { width:32px; height:32px; color:var(--ink-faint); }
+  .drop p { font-size:14px; font-weight:500; }
+  .drop small { font-size:12px; color:var(--ink-faint); }
+  .field { margin-top:32px; }
+  .field label { display:block; margin-bottom:8px; }
+  .input {
+    width:100%; border:1px solid var(--line-strong); background:var(--paper-raised);
+    padding:10px 16px; font-size:14px; font-family:inherit; transition:border-color .2s;
+  }
+  .input:focus { outline:none; border-color:var(--ink); }
+
+  /* ===== admin view ===== */
+  .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:56px; }
+  @media(min-width:768px){ .stats{ grid-template-columns:repeat(4,1fr); } }
+  .stat { background:var(--paper-raised); padding:28px 24px; }
+  .stat .num { font-family:"Playfair Display",Georgia,serif; font-size:36px; letter-spacing:-0.02em; margin-top:6px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint);
+       font-weight:500; padding:12px 16px; border-bottom:1px solid var(--line); }
+  td { padding:14px 16px; border-bottom:1px solid var(--line); color:var(--ink-soft); }
+  tr:last-child td { border-bottom:none; }
+  .badge { font-size:11px; text-transform:uppercase; letter-spacing:.06em; border:1px solid var(--line-strong); padding:3px 10px; color:var(--ink-soft); }
+  .badge.admin { border-color:var(--ink); color:var(--ink); }
+
+  footer { border-top:1px solid var(--line); }
+  .foot-inner { height:96px; display:flex; align-items:center; justify-content:space-between; }
+  .foot-inner .label { margin:0; }
+
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+      <span>CloudMedia</span>
+    </a>
+    <nav>
+      <a href="#">Feed</a>
+      <a href="#">Upload</a>
+      <a href="#" class="btn">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="hero">
+    <p class="label" id="view-label">The Collection</p>
+    <h1 class="serif" id="view-title">Media, curated &amp; shared.</h1>
+    <p id="view-sub">Images from the community — grouped into albums, annotated with care, open to everyone.</p>
+  </div>
+
+  <div class="viewbar" role="tablist">
+    <button class="active" data-view="feed" onclick="show('feed', this)">Feed</button>
+    <button data-view="upload" onclick="show('upload', this)">Upload</button>
+    <button data-view="admin" onclick="show('admin', this)">Admin Console</button>
+  </div>
+
+  <!-- ============ FEED ============ -->
+  <section id="view-feed">
+    <div class="grid">
+      <article class="card">
+        <div class="card-img"><img src="https://picsum.photos/seed/cm1/640/480" alt="" loading="lazy"></div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="label">Travel</span>
+            <span class="card-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>12</span>
+          </div>
+          <h3 class="serif">Morning in the highlands</h3>
+          <p class="card-desc">Shot at dawn after a <strong>six-hour hike</strong>. The fog broke for exactly four minutes.</p>
+          <div class="card-foot"><span>Alya</span><span>Oct 12, 2026</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-img"><img src="https://picsum.photos/seed/cm2/640/480" alt="" loading="lazy"></div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="label">Architecture</span>
+            <span class="card-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>5</span>
+          </div>
+          <h3 class="serif">Concrete study no. 4</h3>
+          <blockquote class="quote">Light is the cheapest building material — and the hardest to pour.</blockquote>
+          <div class="card-foot"><span>Raka</span><span>Oct 9, 2026</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-img"><img src="https://picsum.photos/seed/cm3/640/480" alt="" loading="lazy"></div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="label">Studio</span>
+            <span class="card-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>23</span>
+          </div>
+          <h3 class="serif">Ink &amp; paper tests</h3>
+          <p class="card-desc">Batch 07 — warm blacks on <strong>Munken Kristall</strong>. See the <a href="#" style="text-decoration:underline">full album</a>.</p>
+          <div class="card-foot"><span>Nadia</span><span>Oct 7, 2026</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-img"><img src="https://picsum.photos/seed/cm4/640/480" alt="" loading="lazy"></div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="label">Travel</span>
+            <span class="card-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>8</span>
+          </div>
+          <h3 class="serif">Coastline, off-season</h3>
+          <p class="card-desc">Empty beaches hit different in October.</p>
+          <div class="card-foot"><span>Alya</span><span>Oct 3, 2026</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-img"><img src="https://picsum.photos/seed/cm5/640/480" alt="" loading="lazy"></div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="label">Image</span>
+            <span class="card-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>2</span>
+          </div>
+          <h3 class="serif">Window light</h3>
+          <p class="card-desc">No edits. Straight out of camera.</p>
+          <div class="card-foot"><span>Dio</span><span>Sep 28, 2026</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-img"><img src="https://picsum.photos/seed/cm6/640/480" alt="" loading="lazy"></div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="label">Studio</span>
+            <span class="card-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>17</span>
+          </div>
+          <h3 class="serif">Grid compositions</h3>
+          <p class="card-desc">Exploring <strong>strict grids</strong> with generous whitespace.</p>
+          <div class="card-foot"><span>Nadia</span><span>Sep 25, 2026</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ UPLOAD ============ -->
+  <section id="view-upload" class="hidden">
+    <div class="upload-wrap">
+      <div class="drop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>Drop an image or click to browse</p>
+        <small>JPEG, PNG, WebP, GIF, AVIF — up to 10 MB</small>
+      </div>
+      <div class="field">
+        <label class="label" for="t">Title</label>
+        <input class="input" id="t" placeholder="Untitled">
+      </div>
+      <div class="field">
+        <label class="label" for="a">Album (optional)</label>
+        <select class="input" id="a">
+          <option>— None —</option>
+          <option>Travel 2026</option>
+          <option>Studio — Ink &amp; Paper</option>
+        </select>
+      </div>
+      <div style="margin-top:32px">
+        <button class="btn" type="button">Upload image</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section id="view-admin" class="hidden">
+    <div class="stats">
+      <div class="stat"><p class="label">Users</p><p class="num">128</p></div>
+      <div class="stat"><p class="label">Images</p><p class="num">1,042</p></div>
+      <div class="stat"><p class="label">Comments</p><p class="num">3,517</p></div>
+      <div class="stat"><p class="label">Views / 30d</p><p class="num">24,860</p></div>
+    </div>
+    <div style="border:1px solid var(--line); background:var(--paper-raised)">
+      <table>
+        <thead><tr><th>User</th><th>Email</th><th>Images</th><th>Comments</th><th>Role</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Alya</td><td>alya@mail.com</td><td>312</td><td>204</td><td><span class="badge">User</span></td><td><a href="#" class="label" style="text-decoration:none">Manage</a></td></tr>
+          <tr><td>Raka</td><td>raka@mail.com</td><td>187</td><td>96</td><td><span class="badge">User</span></td><td><a href="#" class="label" style="text-decoration:none">Manage</a></td></tr>
+          <tr><td>Nadia</td><td>nadia@mail.com</td><td>402</td><td>318</td><td><span class="badge admin">Admin</span></td><td><a href="#" class="label" style="text-decoration:none">Manage</a></td></tr>
+          <tr><td>Dio</td><td>dio@mail.com</td><td>141</td><td>77</td><td><span class="badge">User</span></td><td><a href="#" class="label" style="text-decoration:none">Manage</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container foot-inner">
+    <p class="label">CloudMedia — Est. 2026</p>
+    <p style="font-size:13px;color:var(--ink-faint)">Built with restraint.</p>
+  </div>
+</footer>
+
+<script>
+function show(view, btn) {
+  document.querySelectorAll('.viewbar button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['feed','upload','admin'].forEach(v => {
+    document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
+  });
+  const meta = {
+    feed:   ['The Collection',  'Media, curated & shared.', 'Images from the community — grouped into albums, annotated with care, open to everyone.'],
+    upload: ['Contribute',      'Upload an image',          'Files go straight to blob storage and become shareable URLs — nothing touches a local disk.'],
+    admin:  ['Administration',  'Console',                  'Manage members, moderate uploads, and watch how the platform is used.'],
+  }[view];
+  document.getElementById('view-label').textContent = meta[0];
+  document.getElementById('view-title').textContent = meta[1];
+  document.getElementById('view-sub').textContent = meta[2];
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

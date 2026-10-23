@@ -1,0 +1,166 @@
+// CloudMedia — Prisma schema
+// PostgreSQL (Vercel Postgres / Supabase compatible)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ ENUMS ============
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum MediaType {
+  IMAGE
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+}
+
+// ============ MODELS ============
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  image          String?
+  passwordHash   String?   // credentials auth
+  role           Role      @default(USER)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updated_at
+
+  posts     Post[]
+  comments  Comment[]
+  albums    Album[]
+  sessions  Session[]
+  accounts  Account[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  description Json?     // Notion-like rich blocks stored as JSON
+  type        MediaType
+  url         String    // blob storage URL (image/video)
+  thumbnailUrl String?  // for videos
+  width       Int?
+  height      Int?
+  size        Int?      // bytes
+  published   Boolean   @default(true)
+  status      PostStatus @default(PENDING)
+  authorId    String
+  albumId     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updated_at
+
+  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  album    Album?  @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  comments Comment[]
+
+  @@index([authorId])
+  @@index([albumId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Album {
+  id          String   @id @default(cuid())
+  title       String
+  description Json?
+  coverUrl    String?  // cover image blob url
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updated_at
+
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  posts  Post[]
+
+  @@index([authorId])
+  @@map("albums")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  body      String
+  authorId  String
+  postId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updated_at
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  event     String   // "page_view" | "post_view" | "upload" | "comment"
+  path      String?
+  postId    String?
+  userId    String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([event])
+  @@index([createdAt])
+  @@map("analytics")
+}
+
+// ============ NEXTAUTH MODELS ============
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
