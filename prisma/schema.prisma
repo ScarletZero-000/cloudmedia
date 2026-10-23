@@ -42,12 +42,33 @@ model User {
   posts     Post[]
   comments  Comment[]
   likes     Like[]
+  notifications    Notification[] @relation("notifRecipient")
+  notificationsFrom Notification[] @relation("notifActor")
   albums    Album[]
   sessions  Session[]
   accounts  Account[]
 
   @@index([email])
   @@map("users")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   // recipient
+  actorId   String?  // who caused it
+  type      String   // like | comment | reply | approved | rejected
+  postId    String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user  User  @relation("notifRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("notifActor", fields: [actorId], references: [id], onDelete: SetNull)
+  post  Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 model Like {
@@ -87,6 +108,7 @@ model Post {
   comments Comment[]
   likes    Like[]
   views    Int      @default(0)
+  notifications Notification[]
 
   @@index([authorId])
   @@index([albumId])

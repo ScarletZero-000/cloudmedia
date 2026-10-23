@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notify } from "@/lib/notify";
 
 export const runtime = "nodejs";
 
@@ -32,20 +33,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "postId and (body or imageUrl) required" }, { status: 400 });
   }
 
-  const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
+  const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true } });
   if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
   // if replying, the parent must exist on the same post
   let parentIdValue: string | null = null;
+  let parent: { id: string; postId: string; authorId: string } | null = null;
   if (parentId) {
-    const parent = await prisma.comment.findUnique({
+    parent = await prisma.comment.findUnique({
       where: { id: parentId },
-      select: { id: true, postId: true },
+      select: { id: true, postId: true, authorId: true },
     });
     if (!parent || parent.postId !== postId) {
       return NextResponse.json({ error: "Parent comment not found" }, { status: 404 });
     }
-    parentIdValue = parentId;
+    parentIdValue = parent.id;
   }
 
   const comment = await prisma.comment.create({
@@ -58,6 +60,25 @@ export async function POST(req: NextRequest) {
     },
     include: { author: { select: { id: true, name: true, image: true, role: true } } },
   });
+
+  // notify: reply -> parent comment author; plain comment -> post author
+  if (parentIdValue && parent) {
+    notify({
+      userId: parent.authorId,
+      actorId: session.user.id,
+      type: "reply",
+      postId,
+      message: `${session.user.name ?? "Someone"} replied to your comment.`,
+    });
+  } else {
+    notify({
+      userId: post.authorId,
+      actorId: session.user.id,
+      type: "comment",
+      postId,
+      message: `${session.user.name ?? "Someone"} commented on your post.`,
+    });
+  }
 
   // analytics is best-effort — never fail the comment because of it
   await prisma.analytics.create({

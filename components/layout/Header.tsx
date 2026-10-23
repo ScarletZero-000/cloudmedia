@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import NotificationBell from "@/components/layout/NotificationBell";
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Images, LogOut, Menu, UserRound, X } from "lucide-react";
@@ -68,6 +69,7 @@ export default function Header() {
               )}
             </Link>
           ))}
+          {session && <NotificationBell />}
           {session ? (
             <button
               onClick={() => signOut({ callbackUrl: "/" })}

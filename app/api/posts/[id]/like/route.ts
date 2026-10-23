@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notify } from "@/lib/notify";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,7 @@ export async function POST(
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const post = await prisma.post.findUnique({ where: { id: params.id }, select: { id: true } });
+  const post = await prisma.post.findUnique({ where: { id: params.id }, select: { id: true, authorId: true } });
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const userId = session.user.id;
@@ -25,6 +26,15 @@ export async function POST(
     await prisma.like.delete({ where: { id: existing.id } });
   } else {
     await prisma.like.create({ data: { userId, postId: params.id } });
+    if (post.authorId !== userId) {
+      notify({
+        userId: post.authorId,
+        actorId: userId,
+        type: "like",
+        postId: params.id,
+        message: `${session.user.name ?? "Someone"} liked your post.`,
+      });
+    }
   }
 
   const count = await prisma.like.count({ where: { postId: params.id } });
