@@ -54,7 +54,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       onSubmit={onSubmit}
-      className="max-w-xl space-y-8"
+      className="card-hard max-w-xl space-y-8 p-6 sm:p-8"
     >
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -66,7 +66,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
           if (f) setFile(f);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-3 border border-dashed px-8 py-16 text-center transition-colors ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed border-ink-soft bg-paper-dim px-8 py-16 text-center transition-all hover:border-accent hover:bg-accent/5 ${
           dragOver ? "border-ink bg-paper-dim" : "border-line-strong hover:border-ink"
         }`}
       >

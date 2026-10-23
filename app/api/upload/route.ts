@@ -22,6 +22,23 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     const albumId = formData.get("albumId") as string | null;
     const title = (formData.get("title") as string | null)?.trim() || null;
+    // description arrives as a JSON string of rich blocks — parse defensively
+    let description: { type: string; text: string }[] | null = null;
+    try {
+      const raw = formData.get("description");
+      if (typeof raw === "string" && raw.trim()) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          description = parsed
+            .filter((b: any) => b && typeof b.text === "string" && b.text.trim())
+            .map((b: any) => ({ type: String(b.type ?? "paragraph"), text: b.text.slice(0, 500) }))
+            .slice(0, 10);
+          if (!description.length) description = null;
+        }
+      }
+    } catch {
+      description = null;
+    }
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -77,6 +94,7 @@ export async function POST(req: NextRequest) {
       data: {
         title: title || file.name.replace(/\.[^.]+$/, ""),
         slug,
+        ...(description ? { description } : {}),
         type,
         url: blob.url,
         size: file.size,
