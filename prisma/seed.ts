@@ -26,20 +26,21 @@ async function main() {
     },
   });
 
-  const users = await Promise.all(
-    ["alya", "raka", "nadia"].map((n, i) =>
-      prisma.user.upsert({
+  const users = [];
+  for (const n of ["alya", "raka", "nadia"]) {
+    users.push(
+      await prisma.user.upsert({
         where: { email: `${n}@cloudmedia.app` },
         update: {},
         create: {
           email: `${n}@cloudmedia.app`,
           name: n[0].toUpperCase() + n.slice(1),
-          role: "USER",
+          role: "USER" as const,
           passwordHash: await hash(`${n}12345`, 12),
         },
       })
-    )
-  );
+    );
+  }
 
   const travel = await prisma.album.upsert({
     where: { id: "seed-album-travel" },
