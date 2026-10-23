@@ -27,7 +27,7 @@ export default function Header() {
                 Upload
               </Link>
               {isAdmin && (
-                <Link href="/admin" className="flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink transition-colors">
+                <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink transition-colors">
                   <LayoutDashboard className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                   Console
                 </Link>

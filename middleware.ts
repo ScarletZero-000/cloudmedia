@@ -15,7 +15,7 @@ export default withAuth(
   function middleware(req) {
     // Defense in depth: `authorized` below already gates /admin, but this
     // explicit check guarantees the redirect-to-home behaviour.
-    if (req.nextUrl.pathname.startsWith("/admin")) {
+    if (req.nextUrl.pathname.startsWith("/admin") || req.nextUrl.pathname.startsWith("/dashboard")) {
       if (req.nextauth.token?.role !== "ADMIN") {
         const url = req.nextUrl.clone();
         url.pathname = "/";
@@ -29,7 +29,7 @@ export default withAuth(
       authorized: ({ req, token }) => {
         const path = req.nextUrl.pathname;
 
-        if (path.startsWith("/admin")) {
+        if (path.startsWith("/admin") || path.startsWith("/dashboard")) {
           return token?.role === "ADMIN";
         }
         if (path.startsWith("/upload")) {
@@ -45,5 +45,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/admin/:path*", "/upload", "/upload/:path*"],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/upload", "/upload/:path*"],
 };
