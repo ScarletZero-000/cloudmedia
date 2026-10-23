@@ -5,6 +5,7 @@ import type { PostDTO } from "@/types";
 import RichText from "@/components/editor/RichText";
 import { MessageCircle, BadgeCheck } from "lucide-react";
 import DeletePostButton from "@/components/feed/DeletePostButton";
+import LikeButton from "@/components/feed/LikeButton";
 
 export default function MediaCard({
   post,
@@ -46,9 +47,16 @@ export default function MediaCard({
           <p className="label-caps">
             {post.album ? post.album.title : post.type.toLowerCase()}
           </p>
-          <span className="flex items-center gap-1.5 text-xs text-ink-faint">
-            <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            {post._count.comments}
+          <span className="flex items-center gap-3 text-xs text-ink-faint">
+            <LikeButton
+              postId={post.id}
+              initialLikes={post._count.likes ?? 0}
+              compact
+            />
+            <span className="flex items-center gap-1.5">
+              <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              {post._count.comments}
+            </span>
           </span>
         </div>
 

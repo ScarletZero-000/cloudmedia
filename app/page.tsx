@@ -1,8 +1,26 @@
 import Link from "next/link";
-import { ArrowRight, Images, UploadCloud, MessageCircle } from "lucide-react";
+import { ArrowRight, Images, UploadCloud, MessageCircle, Flame, Heart } from "lucide-react";
 import HeroVideo from "@/components/layout/HeroVideo";
+import { prisma } from "@/lib/prisma";
 
-export default function LandingPage() {
+export const dynamic = "force-dynamic";
+
+async function trendingPosts() {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const posts = await prisma.post.findMany({
+    where: { published: true, status: "APPROVED", createdAt: { gte: since } },
+    include: {
+      author: { select: { id: true, name: true, image: true, role: true } },
+      _count: { select: { likes: true, comments: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 30,
+  });
+  return posts.sort((a, b) => b._count.likes - a._count.likes).slice(0, 3);
+}
+
+export default async function LandingPage() {
+  const trending = await trendingPosts();
   return (
     <div className="container-classic">
       {/* Hero */}
@@ -59,6 +77,45 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Trending this week */}
+      {trending.length > 0 && (
+        <section className="border-t-2 border-ink py-20">
+          <div className="mb-10 flex items-center gap-2">
+            <Flame className="h-4 w-4 text-accent" strokeWidth={2} aria-hidden />
+            <p className="label-caps">Trending this week</p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-3">
+            {trending.map((post, i) => (
+              <Link
+                key={post.id}
+                href={`/post/${post.slug || post.id}`}
+                className="card-hard group block"
+              >
+                <div className="relative overflow-hidden border-b-2 border-ink">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={post.url}
+                    alt={post.title}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 ease-out-expo group-hover:scale-[1.03]"
+                  />
+                  <span className="absolute left-3 top-3 border-2 border-ink bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-paper">
+                    #{i + 1}
+                  </span>
+                </div>
+                <div className="p-5">
+                  <h3 className="heading-classic text-lg">{post.title}</h3>
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-faint">
+                    <Heart className="h-3.5 w-3.5 text-accent" strokeWidth={2.5} aria-hidden />
+                    {post._count.likes} likes · {post.author.name ?? "Anonymous"}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="border-t border-line py-24 text-center">

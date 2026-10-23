@@ -10,6 +10,7 @@ import CommentSection from "@/components/feed/CommentSection";
 import EditPostButton from "@/components/feed/EditPostButton";
 import DeletePostButton from "@/components/feed/DeletePostButton";
 import LikeAndViewBar from "@/components/feed/LikeAndViewBar";
+import PostActions from "@/components/feed/PostActions";
 import { ArrowLeft, BadgeCheck } from "lucide-react";
 import type { RichBlock } from "@/types";
 
@@ -134,8 +135,9 @@ export default async function PostPage({
           <span aria-hidden>·</span>
           <span>{post._count.comments} comments</span>
         </div>
-        <div className="mt-5">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <LikeAndViewBar postId={post.id} initialLikes={post._count.likes} initialViews={post.views} />
+          <PostActions url={post.url} title={post.title} />
         </div>
       </header>
 

@@ -21,5 +21,5 @@ export type PostDTO = {
   createdAt: string;
   author: { id: string; name: string | null; image: string | null; role?: "ADMIN" | "USER" };
   album: { id: string; title: string } | null;
-  _count: { comments: number };
+  _count: { comments: number; likes: number };
 };
