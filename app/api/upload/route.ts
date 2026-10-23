@@ -56,9 +56,27 @@ export async function POST(req: NextRequest) {
         addRandomSuffix: true,
       });
 
+    // human-readable slug from title — falls back to a short random tail
+    const baseTitle = (title || file.name.replace(/\.[^.]+$/, "")).trim();
+    let baseSlug =
+      baseTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .slice(0, 60) || "post";
+    // ensure uniqueness: check DB, append -2, -3… if taken
+    let slug = baseSlug;
+    let n = 2;
+    while (await prisma.post.findUnique({ where: { slug }, select: { id: true } })) {
+      slug = `${baseSlug}-${n++}`;
+    }
+
     const post = await prisma.post.create({
       data: {
         title: title || file.name.replace(/\.[^.]+$/, ""),
+        slug,
         type,
         url: blob.url,
         size: file.size,

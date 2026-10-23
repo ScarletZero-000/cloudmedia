@@ -58,8 +58,9 @@ export default async function PostPage({
 }: {
   params: { id: string };
 }) {
-  const post = await prisma.post.findUnique({
-    where: { id: params.id },
+  const post = await prisma.post.findFirst({
+    // slug-or-id route: /post/senju-karakagi AND legacy /post/cmvl… both work
+    where: { OR: [{ slug: params.id }, { id: params.id }] },
     include: {
       author: { select: { id: true, name: true, image: true, role: true } },
       album: { select: { id: true, title: true } },

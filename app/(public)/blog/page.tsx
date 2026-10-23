@@ -48,7 +48,7 @@ export default async function BlogPage() {
             return (
               <Link
                 key={post.id}
-                href={`/post/${post.id}`}
+                href={`/post/${(post as any).slug || post.id}`}
                 className={`group grid grid-cols-[auto,1fr] items-center gap-6 py-8 transition-colors md:grid-cols-[8rem,1fr,12rem] md:gap-10 ${
                   i > 0 ? "border-t border-line" : ""
                 }`}

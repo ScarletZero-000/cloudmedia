@@ -2,30 +2,41 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { motion } from "framer-motion";
-import { MessageCircle, SendHorizonal, LoaderCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageCircle, SendHorizonal, LoaderCircle, Trash2, CornerDownRight, BadgeCheck, X } from "lucide-react";
 
 type CommentDTO = {
   id: string;
   body: string;
   createdAt: string;
-  author: { id: string; name: string | null; image: string | null };
+  parentId: string | null;
+  author: { id: string; name: string | null; image: string | null; role: string };
 };
 
 export default function CommentSection({ postId }: { postId: string }) {
   const { data: session } = useSession();
+  const me = session?.user as { id?: string; role?: string } | undefined;
   const [comments, setComments] = useState<CommentDTO[] | null>(null);
   const [body, setBody] = useState("");
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const firstRender = useRef(true);
+  const formRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const load = () =>
     fetch(`/api/comments?postId=${postId}`)
       .then((r) => r.json())
       .then((d) => setComments(d.comments ?? []))
       .catch(() => setComments([]));
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
+
+  const roots = (comments ?? []).filter((c) => !c.parentId);
+  const repliesOf = (id: string) => (comments ?? []).filter((c) => c.parentId === id);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,12 +47,13 @@ export default function CommentSection({ postId }: { postId: string }) {
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId, body }),
+        body: JSON.stringify({ postId, body, parentId: replyTo?.id ?? null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not post comment");
       setComments((c) => [...(c ?? []), data.comment]);
       setBody("");
+      setReplyTo(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -49,72 +61,183 @@ export default function CommentSection({ postId }: { postId: string }) {
     }
   }
 
+  async function remove(id: string) {
+    if (!confirm("Delete this comment?" + (repliesOf(id).length ? " Its replies are removed too." : ""))) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/comments?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      setComments((c) => (c ?? []).filter((x) => x.id !== id && x.parentId !== id));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function startReply(c: CommentDTO) {
+    setReplyTo({ id: c.id, name: c.author.name ?? "Anonymous" });
+    setError("");
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  const avatar = (c: CommentDTO, size = "h-8 w-8") => (
+    <span className={`${size} shrink-0 overflow-hidden rounded-full border-2 border-ink bg-paper-dim`}>
+      {c.author.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={c.author.image} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-xs font-bold text-ink-faint">
+          {(c.author.name ?? "?").charAt(0).toUpperCase()}
+        </span>
+      )}
+    </span>
+  );
+
+  const row = (c: CommentDTO, isReply = false) => {
+    const canDelete = me && (me.role === "ADMIN" || me.id === c.author.id);
+    return (
+      <motion.li
+        key={c.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className={`py-4 ${isReply ? "ml-10 border-l-2 border-line pl-4 sm:ml-12" : "border-b border-line last:border-0"}`}
+      >
+        <div className="mb-1.5 flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {avatar(c)}
+            <div className="min-w-0">
+              <span className="flex items-center gap-1.5 text-sm font-bold">
+                {c.author.name ?? "Anonymous"}
+                {c.author.role === "ADMIN" && (
+                  <BadgeCheck className="h-3.5 w-3.5 text-blue-500" strokeWidth={2} aria-label="Verified admin" />
+                )}
+              </span>
+              <time className="block text-[11px] text-ink-faint" dateTime={c.createdAt}>
+                {new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </time>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {session && !isReply && (
+              <button
+                onClick={() => startReply(c)}
+                className="flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-ink-faint transition-colors hover:text-ink"
+                title="Reply"
+              >
+                <CornerDownRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                Reply
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => remove(c.id)}
+                disabled={deletingId === c.id}
+                className="p-1.5 text-ink-faint transition-colors hover:text-accent disabled:opacity-30"
+                title="Delete comment"
+                aria-label="Delete comment"
+              >
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="text-[15px] leading-relaxed text-ink-soft">{c.body}</p>
+      </motion.li>
+    );
+  };
+
   return (
-    <section className="border-t border-line py-12">
+    <section className="border-t-2 border-ink py-12">
       <div className="mb-8 flex items-center gap-2">
-        <MessageCircle className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-        <h2 className="label-caps">Comments</h2>
+        <MessageCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
+        <h2 className="label-caps">
+          Comments {comments ? `· ${comments.length}` : ""}
+        </h2>
       </div>
 
       {comments === null ? (
         <p className="text-sm text-ink-faint">Loading…</p>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-ink-faint">No comments yet. Start the conversation.</p>
+        <div className="border-2 border-dashed border-line-strong px-6 py-10 text-center">
+          <p className="text-sm font-semibold text-ink-faint">No comments yet. Start the conversation.</p>
+        </div>
       ) : (
-        <ul className="divide-y divide-line">
-          {comments.map((c, i) => (
-            <motion.li
-              key={c.id}
-              initial={firstRender.current ? { opacity: 0, y: 12 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: i * 0.05 }}
-              className="py-5 first:pt-0 last:pb-0"
-            >
-              <div className="mb-1.5 flex items-baseline justify-between">
-                <span className="text-sm font-medium">{c.author.name ?? "Anonymous"}</span>
-                <time className="text-xs text-ink-faint" dateTime={c.createdAt}>
-                  {new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                </time>
-              </div>
-              <p className="text-[15px] leading-relaxed text-ink-soft">{c.body}</p>
-            </motion.li>
+        <ul>
+          {roots.map((c) => (
+            <div key={c.id}>
+              {row(c)}
+              <AnimatePresence>
+                {repliesOf(c.id).length > 0 && (
+                  <motion.ul
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    {repliesOf(c.id).map((r) => row(r, true))}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
+            </div>
           ))}
         </ul>
       )}
 
       {session ? (
-        <form onSubmit={submit} className="mt-10">
-          <label htmlFor="comment" className="label-caps mb-2 block">Leave a comment</label>
-          <textarea
-            id="comment"
-            rows={3}
-            className="input-classic resize-y"
-            value={body}
-            maxLength={2000}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Write something thoughtful…"
-          />
-          {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
-          <div className="mt-3 flex justify-end">
-            <button
-              type="submit"
-              disabled={submitting || !body.trim()}
-              className="btn-classic disabled:pointer-events-none disabled:opacity-40"
-            >
-              {submitting ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <SendHorizonal className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-              )}
-              Post comment
-            </button>
-          </div>
-        </form>
+        <div ref={formRef} className="mt-10">
+          <AnimatePresence>
+            {replyTo && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="mb-3 flex items-center justify-between border-2 border-accent bg-accent/5 px-3 py-2 text-xs font-bold"
+              >
+                <span className="flex items-center gap-1.5">
+                  <CornerDownRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                  Replying to {replyTo.name}
+                </span>
+                <button onClick={() => setReplyTo(null)} className="text-ink-faint hover:text-ink" aria-label="Cancel reply">
+                  <X className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <form onSubmit={submit}>
+            <label htmlFor="comment" className="label-caps mb-2 block">Leave a comment</label>
+            <textarea
+              id="comment"
+              rows={3}
+              className="input-classic resize-y"
+              value={body}
+              maxLength={2000}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Write something thoughtful…"
+            />
+            {error && <p className="mt-2 text-sm font-bold text-accent">{error}</p>}
+            <div className="mt-3 flex justify-end">
+              <button
+                type="submit"
+                disabled={submitting || !body.trim()}
+                className="btn-accent disabled:pointer-events-none disabled:opacity-40"
+              >
+                {submitting ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <SendHorizonal className="h-4 w-4" strokeWidth={2} aria-hidden />
+                )}
+                {replyTo ? "Post reply" : "Post comment"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : (
-        <p className="mt-10 text-sm text-ink-faint">
-          Sign in to join the discussion.
-        </p>
+        <p className="mt-10 text-sm text-ink-faint">Sign in to join the discussion.</p>
       )}
     </section>
   );
 }
+

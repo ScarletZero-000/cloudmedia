@@ -18,12 +18,12 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ comments });
 }
 
-// POST /api/comments { postId, body }
+// POST /api/comments { postId, body, parentId? } — supports threaded replies
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { postId, body } = await req.json();
+  const { postId, body, parentId } = await req.json();
   if (!postId || typeof body !== "string" || !body.trim()) {
     return NextResponse.json({ error: "postId and body required" }, { status: 400 });
   }
@@ -31,11 +31,25 @@ export async function POST(req: NextRequest) {
   const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
   if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
+  // if replying, the parent must exist on the same post
+  let parentIdValue: string | null = null;
+  if (parentId) {
+    const parent = await prisma.comment.findUnique({
+      where: { id: parentId },
+      select: { id: true, postId: true },
+    });
+    if (!parent || parent.postId !== postId) {
+      return NextResponse.json({ error: "Parent comment not found" }, { status: 404 });
+    }
+    parentIdValue = parentId;
+  }
+
   const comment = await prisma.comment.create({
     data: {
       body: body.trim().slice(0, 2000),
       postId,
       authorId: session.user.id,
+      parentId: parentIdValue,
     },
     include: { author: { select: { id: true, name: true, image: true, role: true } } },
   });
@@ -46,4 +60,29 @@ export async function POST(req: NextRequest) {
   }).catch((e) => console.warn("analytics skip:", e?.code ?? e));
 
   return NextResponse.json({ comment }, { status: 201 });
+}
+
+// DELETE /api/comments?id=... — author or admin
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Comment id required" }, { status: 400 });
+
+  const comment = await prisma.comment.findUnique({
+    where: { id },
+    select: { authorId: true },
+  });
+  if (!comment) return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+
+  const isAdmin = session.user.role === "ADMIN";
+  if (comment.authorId !== session.user.id && !isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // delete replies first (no FK cascade on self-relation)
+  await prisma.comment.deleteMany({ where: { parentId: id } });
+  await prisma.comment.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }

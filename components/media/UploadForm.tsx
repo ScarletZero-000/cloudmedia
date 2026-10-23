@@ -9,6 +9,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
   const { data: session } = useSession();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
   const [albumId, setAlbumId] = useState("");
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -28,6 +29,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
     const fd = new FormData();
     fd.append("file", file);
     if (title) fd.append("title", title);
+    if (desc.trim()) fd.append("description", JSON.stringify([{ type: "paragraph", text: desc.trim() }]));
     if (albumId) fd.append("albumId", albumId);
 
     try {
@@ -38,6 +40,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
       setMessage(data.post.url);
       setFile(null);
       setTitle("");
+      setDesc("");
       if (inputRef.current) inputRef.current.value = "";
     } catch (err: any) {
       setStatus("error");
@@ -95,6 +98,19 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled"
           />
+        </div>
+        <div>
+          <label htmlFor="desc" className="label-caps mb-2 block">Description (optional)</label>
+          <textarea
+            id="desc"
+            rows={3}
+            className="input-classic resize-y"
+            value={desc}
+            maxLength={500}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="Short description — shown under the title and used as the WhatsApp link preview text."
+          />
+          <p className="mt-1.5 text-[11px] text-ink-faint">{desc.length}/500</p>
         </div>
         {albums.length > 0 && (
           <div>

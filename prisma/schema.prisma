@@ -51,6 +51,7 @@ model User {
 
 model Post {
   id          String    @id @default(cuid())
+  slug        String?   @unique
   title       String
   description Json?     // Notion-like rich blocks stored as JSON
   type        MediaType
@@ -97,14 +98,18 @@ model Comment {
   body      String
   authorId  String
   postId    String
+  parentId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentThread")
 
   @@index([postId])
   @@index([authorId])
+  @@index([parentId])
   @@map("comments")
 }
 
