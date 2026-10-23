@@ -28,10 +28,8 @@ export default function PostActions({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <a
-        href={url}
+        href={`/api/download?url=${encodeURIComponent(url)}`}
         download
-        target="_blank"
-        rel="noreferrer"
         className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
         title="Download the original image"
       >
