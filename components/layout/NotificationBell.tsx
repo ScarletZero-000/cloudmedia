@@ -104,7 +104,7 @@ export default function NotificationBell() {
                   {items.map((n) => (
                     <li
                       key={n.id}
-                      className={`border-b border-line px-4 py-3 last:border-0 ${n.read ? "" : "bg-accent/5"}`}
+                      className={`border-b border-line px-4 py-3 last:border-0 ${n.read ? "" : "bg-accent/5"} ${n.type === "announcement" ? "border-l-4 border-l-accent" : ""}`}
                     >
                       <div className="flex items-start gap-2.5">
                         <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full border-2 border-ink bg-paper-dim">

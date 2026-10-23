@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import ConfirmDialog, { type ConfirmState } from "@/components/ui/ConfirmDialog";
 import {
-  Users, Image as ImageIcon, MessageCircle, Clock, Trash2, ShieldCheck, ShieldOff,
+  Users, Image as ImageIcon, MessageCircle, Clock, Trash2, ShieldCheck, ShieldOff, Megaphone, LoaderCircle,
   Check, X, TriangleAlert, CircleCheck,
 } from "lucide-react";
 
@@ -45,6 +45,8 @@ export default function AdminDashboard({
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [announceMsg, setAnnounceMsg] = useState("");
+  const [announcing, setAnnouncing] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
 
   const totals = {
@@ -269,6 +271,52 @@ export default function AdminDashboard({
             ))}
           </div>
         )}
+      </section>
+
+      {/* Announcement broadcast */}
+      <section className="mb-20">
+        <h2 className="label-caps mb-6">Announcement</h2>
+        <div className="card-hard p-6">
+          <p className="mb-3 text-sm text-ink-soft">
+            Send a notification to every member&apos;s bell at once. Keep it short — it shows in their dropdown.
+          </p>
+          <textarea
+            rows={3}
+            maxLength={500}
+            value={announceMsg}
+            onChange={(e) => setAnnounceMsg(e.target.value)}
+            placeholder="e.g. Server maintenance tonight at 11 PM — uploads may be briefly unavailable."
+            className="input-classic resize-none"
+          />
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-[11px] font-mono text-ink-faint">{announceMsg.length}/500</span>
+            <button
+              onClick={async () => {
+                if (!announceMsg.trim() || announcing) return;
+                setAnnouncing(true);
+                try {
+                  const res = await fetch("/api/notifications", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "announce", message: announceMsg.trim() }),
+                  });
+                  if (!res.ok) throw new Error();
+                  setToast(`Announcement sent to all members`);
+                  setAnnounceMsg("");
+                } catch {
+                  setToast("Failed to send announcement");
+                } finally {
+                  setAnnouncing(false);
+                }
+              }}
+              disabled={announcing || !announceMsg.trim()}
+              className="btn-accent disabled:pointer-events-none disabled:opacity-40"
+            >
+              {announcing ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Megaphone className="h-4 w-4" strokeWidth={2} aria-hidden />}
+              {announcing ? "Sending…" : "Send to everyone"}
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* Members */}

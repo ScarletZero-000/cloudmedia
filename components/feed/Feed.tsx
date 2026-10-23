@@ -80,6 +80,31 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
     };
   }, []);
 
+  // restore scroll position when coming BACK to the feed (bfcache usually
+  // handles it, but force-dynamic pages often don't) — save on leave, restore
+  // after first paint on return.
+  useEffect(() => {
+    const save = () => {
+      try {
+        sessionStorage.setItem("cm_feed_scroll", String(window.scrollY));
+      } catch {}
+    };
+    const restore = () => {
+      try {
+        const y = Number(sessionStorage.getItem("cm_feed_scroll") ?? "0");
+        if (y > 0) window.scrollTo(0, y);
+      } catch {}
+    };
+    window.addEventListener("pagehide", save);
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    // restore once after mount
+    const t = setTimeout(restore, 60);
+    return () => {
+      window.removeEventListener("pagehide", save);
+      clearTimeout(t);
+    };
+  }, []);
+
   // IntersectionObserver instead of scroll listener:
   // fires off the main thread, doesn't jank scrolling on low-end phones.
   useEffect(() => {
