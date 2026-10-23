@@ -1,3 +1,6 @@
+"use client";
+
+// SessionProvider is a React Context — it must live in a Client Component.
 import { SessionProvider } from "next-auth/react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";

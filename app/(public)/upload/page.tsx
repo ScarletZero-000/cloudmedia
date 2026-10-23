@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import UploadForm from "@/components/media/UploadForm";
 
+export const dynamic = "force-dynamic"; // queries DB — never prerender statically
 export const metadata = { title: "Upload" };
 
 export default async function UploadPage() {
