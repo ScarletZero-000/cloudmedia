@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ConfirmDialog, { type ConfirmState } from "@/components/ui/ConfirmDialog";
-import { MessageCircle, SendHorizonal, LoaderCircle, Trash2, CornerDownRight, BadgeCheck, X } from "lucide-react";
+import { MessageCircle, SendHorizonal, LoaderCircle, Trash2, CornerDownRight, BadgeCheck, X, ImagePlus } from "lucide-react";
 
 type CommentDTO = {
   id: string;
   body: string;
+  imageUrl: string | null;
   createdAt: string;
   parentId: string | null;
   author: { id: string; name: string | null; image: string | null; role: string };
@@ -24,6 +25,10 @@ export default function CommentSection({ postId }: { postId: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const [error, setError] = useState("");
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   const load = () =>
@@ -42,19 +47,34 @@ export default function CommentSection({ postId }: { postId: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (!body.trim() && !pendingImage) return;
     setSubmitting(true);
     setError("");
     try {
+      let imageUrl: string | undefined;
+      if (pendingImage) {
+        setUploadingImage(true);
+        const fd = new FormData();
+        fd.append("file", pendingImage);
+        const up = await fetch("/api/comments/image", { method: "POST", body: fd });
+        setUploadingImage(false);
+        if (!up.ok) {
+          const d = await up.json().catch(() => ({}));
+          throw new Error(d.error ?? "Image upload failed");
+        }
+        imageUrl = (await up.json()).url;
+      }
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId, body, parentId: replyTo?.id ?? null }),
+        body: JSON.stringify({ postId, body, parentId: replyTo?.id ?? null, ...(imageUrl && { imageUrl }) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not post comment");
       setComments((c) => [...(c ?? []), data.comment]);
       setBody("");
+      setPendingImage(null);
+      setImagePreview(null);
       setReplyTo(null);
     } catch (err: any) {
       setError(err.message);
@@ -151,7 +171,16 @@ export default function CommentSection({ postId }: { postId: string }) {
             )}
           </div>
         </div>
-        <p className="text-[15px] leading-relaxed text-ink-soft">{c.body}</p>
+        {c.imageUrl && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={c.imageUrl}
+            alt="Comment attachment"
+            loading="lazy"
+            className="mb-2 max-h-80 w-auto max-w-full border-2 border-ink object-contain"
+          />
+        )}
+        {c.body && <p className="text-[15px] leading-relaxed text-ink-soft">{c.body}</p>}
       </motion.li>
     );
   };
@@ -216,6 +245,20 @@ export default function CommentSection({ postId }: { postId: string }) {
           </AnimatePresence>
           <form onSubmit={submit}>
             <label htmlFor="comment" className="label-caps mb-2 block">Leave a comment</label>
+            {imagePreview && (
+              <div className="mb-3 inline-flex items-start gap-3 border-2 border-ink bg-paper-dim p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imagePreview} alt="Attachment preview" className="h-16 w-16 border border-line object-cover" />
+                <button
+                  type="button"
+                  onClick={() => { setPendingImage(null); setImagePreview(null); }}
+                  className="text-ink-faint transition-colors hover:text-accent"
+                  aria-label="Remove attachment"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                </button>
+              </div>
+            )}
             <textarea
               id="comment"
               rows={3}
@@ -223,13 +266,39 @@ export default function CommentSection({ postId }: { postId: string }) {
               value={body}
               maxLength={2000}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Write something thoughtful…"
+              placeholder={pendingImage ? "Say something about this image (optional)…" : "Write something thoughtful…"}
             />
             {error && <p className="mt-2 text-sm font-bold text-accent">{error}</p>}
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex items-center justify-between">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setPendingImage(f);
+                  setImagePreview(f ? URL.createObjectURL(f) : null);
+                  if (imageInputRef.current) imageInputRef.current.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage || submitting}
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold text-ink-faint transition-colors hover:text-ink disabled:opacity-40"
+                title="Attach an image"
+              >
+                {uploadingImage ? (
+                  <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <ImagePlus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                )}
+                Image
+              </button>
               <button
                 type="submit"
-                disabled={submitting || !body.trim()}
+                disabled={submitting || (!body.trim() && !pendingImage)}
                 className="btn-accent disabled:pointer-events-none disabled:opacity-40"
               >
                 {submitting ? (

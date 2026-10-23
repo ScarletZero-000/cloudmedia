@@ -23,9 +23,13 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { postId, body, parentId } = await req.json();
-  if (!postId || typeof body !== "string" || !body.trim()) {
-    return NextResponse.json({ error: "postId and body required" }, { status: 400 });
+  const { postId, body, parentId, imageUrl } = await req.json();
+  // a comment needs text, an image, or both
+  if (
+    !postId ||
+    (typeof body !== "string" || !body.trim()) && typeof imageUrl !== "string"
+  ) {
+    return NextResponse.json({ error: "postId and (body or imageUrl) required" }, { status: 400 });
   }
 
   const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
@@ -46,7 +50,8 @@ export async function POST(req: NextRequest) {
 
   const comment = await prisma.comment.create({
     data: {
-      body: body.trim().slice(0, 2000),
+      body: typeof body === "string" ? body.trim().slice(0, 2000) : "",
+      imageUrl: typeof imageUrl === "string" && imageUrl.startsWith("https://") ? imageUrl : null,
       postId,
       authorId: session.user.id,
       parentId: parentIdValue,

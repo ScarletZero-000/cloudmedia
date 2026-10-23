@@ -96,6 +96,7 @@ model Album {
 model Comment {
   id        String   @id @default(cuid())
   body      String
+  imageUrl  String?
   authorId  String
   postId    String
   parentId  String?
