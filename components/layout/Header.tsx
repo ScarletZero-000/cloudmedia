@@ -20,6 +20,9 @@ export default function Header() {
           <Link href="/feed" className="text-sm text-ink-soft hover:text-ink transition-colors">
             Feed
           </Link>
+          <Link href="/blog" className="text-sm text-ink-soft hover:text-ink transition-colors">
+            Blog
+          </Link>
           {session ? (
             <>
               <Link href="/upload" className="flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink transition-colors">

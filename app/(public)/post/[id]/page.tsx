@@ -1,13 +1,57 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import RichText from "@/components/editor/RichText";
 import CommentSection from "@/components/feed/CommentSection";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BadgeCheck } from "lucide-react";
 import type { RichBlock } from "@/types";
 
 export const dynamic = "force-dynamic";
+
+// Per-post Open Graph metadata: every page ships its OWN thumbnail,
+// so WhatsApp/Twitter previews show that post's image — not a generic one.
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const post = await prisma.post.findUnique({
+    where: { id: params.id },
+    select: {
+      title: true,
+      description: true,
+      url: true,
+      thumbnailUrl: true,
+      author: { select: { name: true } },
+    },
+  });
+  if (!post) return { title: "Not found — CloudMedia" };
+
+  const blocks = post.description as RichBlock[] | null;
+  const plain =
+    blocks?.[0]?.type === "paragraph"
+      ? String(blocks[0].text).slice(0, 160)
+      : undefined;
+  const img = post.thumbnailUrl || post.url;
+
+  return {
+    title: `${post.title} — CloudMedia`,
+    description: plain ?? `By ${post.author.name ?? "Anonymous"} on CloudMedia.`,
+    openGraph: {
+      title: post.title,
+      description: plain ?? `By ${post.author.name ?? "Anonymous"} on CloudMedia.`,
+      images: [{ url: img }],
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image" as const,
+      title: post.title,
+      images: [img],
+    },
+  };
+}
 
 export default async function PostPage({
   params,
@@ -17,7 +61,7 @@ export default async function PostPage({
   const post = await prisma.post.findUnique({
     where: { id: params.id },
     include: {
-      author: { select: { id: true, name: true, image: true } },
+      author: { select: { id: true, name: true, image: true, role: true } },
       album: { select: { id: true, title: true } },
       _count: { select: { comments: true } },
     },
@@ -49,7 +93,12 @@ export default async function PostPage({
         )}
         <h1 className="heading-classic text-4xl md:text-5xl">{post.title}</h1>
         <div className="mt-5 flex items-center gap-3 text-sm text-ink-faint">
-          <span>{post.author.name ?? "Anonymous"}</span>
+          <span className="flex items-center gap-1.5">
+            {post.author.name ?? "Anonymous"}
+            {post.author.role === "ADMIN" && (
+              <BadgeCheck className="h-4 w-4 text-blue-500" strokeWidth={2} aria-label="Verified admin" />
+            )}
+          </span>
           <span aria-hidden>·</span>
           <time dateTime={post.createdAt.toISOString()}>
             {post.createdAt.toLocaleDateString("en-US", {
