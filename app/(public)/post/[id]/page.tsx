@@ -22,8 +22,9 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const post = await prisma.post.findUnique({
-    where: { id: params.id },
+  const post = await prisma.post.findFirst({
+    // slug-or-id: matches the page body, so slug URLs get real OG previews
+    where: { OR: [{ slug: params.id }, { id: params.id }] },
     select: {
       title: true,
       description: true,
