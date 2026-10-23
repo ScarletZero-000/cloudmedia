@@ -16,8 +16,8 @@ export default function MediaCard({ post, index }: { post: PostDTO; index: numbe
       transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
       className="card-line group flex flex-col"
     >
-      <a href={`/media/${post.id}`} className="block overflow-hidden border-b border-line">
-        // eslint-disable-next-line @next/next/no-img-element
+      <a href={`/post/${post.id}`} className="block overflow-hidden border-b border-line">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={post.url}
           alt={post.title}

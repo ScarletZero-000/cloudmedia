@@ -3,6 +3,7 @@ import { put } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyTelegram } from "@/lib/telegram";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -72,6 +73,19 @@ export async function POST(req: NextRequest) {
     await prisma.analytics.create({
       data: { event: "upload", userId: session.user.id, postId: post.id },
     });
+
+    if (post.status === "PENDING") {
+      notifyTelegram(
+        [
+          "<b>Upload baru menunggu approve</b>",
+          "",
+          `Judul: ${post.title}`,
+          `Oleh: ${session.user.name ?? session.user.email}`,
+          "",
+          `Approve via bot: /approve ${post.id}`,
+        ].join("\n")
+      );
+    }
 
     return NextResponse.json({ post }, { status: 201 });
   } catch (err) {
