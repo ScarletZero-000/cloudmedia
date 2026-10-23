@@ -10,7 +10,7 @@ export default async function FeedPage() {
     include: {
       author: { select: { id: true, name: true, image: true, role: true } },
       album: { select: { id: true, title: true } },
-      _count: { select: { comments: true } },
+      _count: { select: { comments: true, likes: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 13,

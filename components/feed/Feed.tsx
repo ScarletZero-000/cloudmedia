@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { PostDTO } from "@/types";
 import { useSession } from "next-auth/react";
 import MediaCard from "@/components/feed/MediaCard";
-import { ArrowDown, LoaderCircle } from "lucide-react";
+import { ArrowDown, LoaderCircle, Search, X } from "lucide-react";
 
 export default function Feed({ initialPosts, initialCursor }: { initialPosts: PostDTO[]; initialCursor: string | null }) {
   const { data: session } = useSession();
@@ -14,16 +14,21 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(!initialCursor);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"new" | "top">("new");
   const reduce = useReducedMotion();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || done || !cursor) return;
     loadingRef.current = true;
     setLoading(true);
     try {
-      const res = await fetch(`/api/posts?cursor=${cursor}&limit=12`);
+      const params = new URLSearchParams({ cursor: cursor, limit: "12", sort });
+      if (query) params.set("q", query);
+      const res = await fetch(`/api/posts?${params}`);
       const data = await res.json();
       setPosts((p) => [...p, ...data.posts]);
       setCursor(data.nextCursor);
@@ -32,7 +37,48 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [cursor, done]);
+  }, [cursor, done, query, sort]);
+
+  // reload from the top when search/sort changes (debounced 350ms for typing)
+  const reload = useCallback(
+    (q: string, s: "new" | "top") => {
+      loadingRef.current = true;
+      setLoading(true);
+      const params = new URLSearchParams({ limit: "12", sort: s });
+      if (q) params.set("q", q);
+      fetch(`/api/posts?${params}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setPosts(data.posts);
+          setCursor(data.nextCursor);
+          setDone(!data.nextCursor);
+        })
+        .catch(() => {})
+        .finally(() => {
+          loadingRef.current = false;
+          setLoading(false);
+        });
+    },
+    []
+  );
+
+  const onQuery = (v: string) => {
+    setQuery(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => reload(v.trim(), sort), 350);
+  };
+
+  const onSort = (s: "new" | "top") => {
+    if (s === sort) return;
+    setSort(s);
+    reload(query.trim(), s);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   // IntersectionObserver instead of scroll listener:
   // fires off the main thread, doesn't jank scrolling on low-end phones.
@@ -55,7 +101,7 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
         initial={reduce ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="mb-16 max-w-2xl"
+        className="mb-12 max-w-2xl"
       >
         <p className="label-caps mb-4">The Collection</p>
         <h1 className="heading-classic text-4xl md:text-6xl">Media, curated &amp; shared.</h1>
@@ -64,8 +110,53 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
         </p>
       </motion.div>
 
+      {/* search + sort bar */}
+      <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" strokeWidth={2} aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            placeholder="Search posts or authors…"
+            aria-label="Search the feed"
+            className="input-classic pl-11"
+          />
+          {query && (
+            <button
+              onClick={() => onQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-ink-faint hover:text-ink"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-0" role="tablist" aria-label="Sort feed">
+          {(["new", "top"] as const).map((s) => (
+            <button
+              key={s}
+              role="tab"
+              aria-selected={sort === s}
+              onClick={() => onSort(s)}
+              className={`border-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors ${
+                sort === s
+                  ? "border-ink bg-ink text-paper"
+                  : "border-ink-soft bg-paper-raised text-ink-soft hover:border-ink hover:text-ink"
+              } ${s === "new" ? "rounded-l-none" : "-ml-0.5 rounded-r-none"}`}
+            >
+              {s === "new" ? "Newest" : "Most liked"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {posts.length === 0 ? (
-        <p className="text-ink-faint">Nothing here yet. Be the first to upload.</p>
+        <div className="border-2 border-dashed border-line-strong px-6 py-16 text-center">
+          <p className="text-sm font-semibold text-ink-faint">
+            {query ? `Nothing matches “${query}”. Try another word.` : "Nothing here yet. Be the first to upload."}
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((post, i) => (
