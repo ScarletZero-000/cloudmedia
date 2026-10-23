@@ -3,8 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import RichText from "@/components/editor/RichText";
 import CommentSection from "@/components/feed/CommentSection";
+import EditPostButton from "@/components/feed/EditPostButton";
 import { ArrowLeft, BadgeCheck } from "lucide-react";
 import type { RichBlock } from "@/types";
 
@@ -70,6 +73,9 @@ export default async function PostPage({
 
   if (!post || !post.published) notFound();
 
+  const session = await getServerSession(authOptions);
+  const canEdit = Boolean(session?.user && (session.user.id === post.authorId || session.user.role === "ADMIN"));
+
   const description = post.description as RichBlock[] | null;
   const ratio =
     post.width && post.height ? `${post.width} / ${post.height}` : "4 / 3";
@@ -92,7 +98,18 @@ export default async function PostPage({
             </Link>
           </p>
         )}
-        <h1 className="heading-classic text-4xl md:text-5xl">{post.title}</h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="heading-classic text-4xl md:text-5xl">{post.title}</h1>
+          <EditPostButton
+            post={{
+              id: post.id,
+              title: post.title,
+              description: post.description as { type: string; text: string }[] | null,
+              url: post.url,
+              canEdit,
+            }}
+          />
+        </div>
         <div className="mt-5 flex items-center gap-3 text-sm text-ink-faint">
           <span className="flex items-center gap-1.5">
             {post.author.name ?? "Anonymous"}

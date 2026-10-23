@@ -28,6 +28,7 @@ export async function PATCH(
       ...(body.description !== undefined && { description: body.description }),
       ...(body.published !== undefined && { published: Boolean(body.published) }),
       ...(body.albumId !== undefined && { albumId: body.albumId }),
+      ...(typeof body.url === "string" && { url: body.url }),
     },
   });
 
