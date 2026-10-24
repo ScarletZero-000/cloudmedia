@@ -24,7 +24,8 @@ export default async function ProfilePage({
   const user = await prisma.user.findUnique({
     where: { id: params.id },
     select: {
-      id: true, name: true, image: true, role: true, createdAt: true,
+      id: true, name: true, image: true, role: true,
+        levelOverride: true, createdAt: true,
       _count: { select: { posts: true, comments: true, followersIn: true } },
     },
   });
@@ -46,13 +47,17 @@ export default async function ProfilePage({
   // level system: uploads drive xp most, likes reward quality, comments participation
   const likesReceived = posts.reduce((sum, post) => sum + (post._count as any).likes, 0);
   const xp = computeXp(user._count.posts, likesReceived, user._count.comments);
-  const lvl = levelProgress(xp);
+  const natural = levelProgress(xp);
+  const override = (user as any).levelOverride as number | null | undefined;
+  const lvl = override && override > 0
+    ? { ...natural, level: override, pct: 100, need: 0, into: 0 }
+    : natural;
   const tier = tierForLevel(lvl.level);
 
   return (
     <div className="container-classic py-12 md:py-16">
       {/* profile header — hard card */}
-      <section className={`card-hard mb-10 p-[3px] ${tier.color}`}>
+      <section className={`card-hard mb-10 p-[3px] ${tier.ring}`}>
         <div className="border-2 border-ink p-[3px]">
           <div className="flex flex-col items-start gap-6 bg-paper-raised p-6 sm:flex-row sm:items-center md:p-10">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-ink bg-paper-dim md:h-32 md:w-32">
@@ -95,25 +100,41 @@ export default async function ProfilePage({
       </section>
 
       {/* level strip */}
-      <section className="card-line mb-16 flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-5">
-          <div className={`flex h-16 w-16 shrink-0 items-center justify-center border-2 ${tier.color} bg-paper-dim`}>
-            <span className="heading-classic text-2xl">{lvl.level}</span>
-          </div>
-          <div>
-            <p className={`label-caps ${tier.chip} border px-2 py-0.5 inline-block`}>{tier.name}</p>
-            <p className="mt-1.5 text-sm text-ink-soft">
-              <b className="font-bold">{xp.toLocaleString()}</b> XP · {lvl.need} XP to level {lvl.level + 1}
-            </p>
-          </div>
-        </div>
-        <div className="w-full md:max-w-sm">
-          <div className="flex justify-between text-[10px] font-bold uppercase tracking-caps text-ink-faint">
-            <span>Level {lvl.level}</span>
-            <span>Level {lvl.level + 1}</span>
-          </div>
-          <div className="mt-1.5 h-3 border-2 border-ink bg-paper-dim">
-            <div className="h-full bg-accent transition-all" style={{ width: `${lvl.pct}%` }} />
+      <section className="card-hard mb-16 p-[3px]" style={{ borderColor: undefined }}>
+        <div className={`border-2 p-[3px] ${tier.ring}`}>
+          <div className="flex flex-col items-stretch gap-6 bg-paper-raised p-6 sm:flex-row sm:items-center md:justify-between md:p-8">
+            {/* badge: solid color square with rotated ink frame */}
+            <div className="flex items-center gap-6">
+              <div className={`relative flex h-20 w-20 shrink-0 items-center justify-center ${tier.bg} shadow-[5px_5px_0_0_#0c0c0c]`}>
+                <span className="font-serif text-3xl font-bold text-paper">{lvl.level}</span>
+                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap border-2 border-ink bg-paper px-2 py-px text-[9px] font-bold uppercase tracking-caps text-ink">
+                  {tier.name}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="label-caps">Rank</p>
+                <p className="heading-classic mt-1 text-xl md:text-2xl">
+                  {override ? `Level ${lvl.level}` : `Level ${lvl.level}`}
+                </p>
+                <p className="mt-1 text-sm text-ink-soft">
+                  <b className="font-bold text-ink">{xp.toLocaleString()} XP</b>
+                  {override ? " · set by admin" : ` · ${lvl.need} XP to level ${lvl.level + 1}`}
+                </p>
+              </div>
+            </div>
+            {/* xp bar */}
+            {!override && (
+              <div className="w-full sm:max-w-xs">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-caps text-ink-faint">
+                  <span>Lv {lvl.level}</span>
+                  <span>Lv {lvl.level + 1}</span>
+                </div>
+                <div className="mt-2 h-4 border-2 border-ink bg-paper-dim shadow-[3px_3px_0_0_#0c0c0c]">
+                  <div className="h-full bg-accent" style={{ width: `${lvl.pct}%` }} />
+                </div>
+                <p className="mt-2 text-[11px] text-ink-faint">{lvl.into} / {lvl.next - lvl.current} XP</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

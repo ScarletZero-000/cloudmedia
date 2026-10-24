@@ -13,6 +13,7 @@ type AdminUser = {
   id: string; name: string | null; email: string; role: "ADMIN" | "USER";
   createdAt: string | Date;
   isBanned?: boolean;
+  levelOverride?: number | null;
   _count: { posts: number; comments: number };
 };
 
@@ -45,6 +46,7 @@ export default function AdminDashboard({
   const reduce = useReducedMotion();
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [levelId, setLevelId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [announceMsg, setAnnounceMsg] = useState("");
   const [announcing, setAnnouncing] = useState(false);
@@ -145,6 +147,22 @@ export default function AdminDashboard({
         body: JSON.stringify({ title: newAlbum.trim() }),
       }).then(() => setNewAlbum(""))
     );
+  };
+
+  const setLevel = async (id: string, level: number) => {
+    setBusyId(`lv-${id}`);
+    try {
+      const res = await fetch("/api/admin/users/level", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id, level }),
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } finally {
+      setBusyId(null);
+    }
   };
   const deleteAlbum = (id: string) =>
     setConfirmState({
@@ -377,6 +395,27 @@ export default function AdminDashboard({
                           ? <ShieldOff className="h-4 w-4" strokeWidth={2} aria-hidden />
                           : <ShieldCheck className="h-4 w-4" strokeWidth={2} aria-hidden />}
                       </IconBtn>
+                      <div className="flex items-center border-2 border-ink-soft">
+                        <button
+                          type="button"
+                          disabled={busyId === `lv-${u.id}`}
+                          onClick={() => setLevel(u.id, Math.max(0, (u.levelOverride ?? 1) - 1))}
+                          className="px-2 py-1 text-xs font-bold text-ink-soft hover:text-accent disabled:opacity-40"
+                          title="Level -1 (0 = auto from XP)"
+                          aria-label="Decrease level"
+                        >-</button>
+                        <span className="min-w-[3.5rem] border-x-2 border-ink-soft px-1 py-1 text-center text-[11px] font-bold text-ink">
+                          Lv {u.levelOverride ?? "auto"}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={busyId === `lv-${u.id}`}
+                          onClick={() => setLevel(u.id, (u.levelOverride ?? 0) + 1)}
+                          className="px-2 py-1 text-xs font-bold text-ink-soft hover:text-accent disabled:opacity-40"
+                          title="Level +1"
+                          aria-label="Increase level"
+                        >+</button>
+                      </div>
                       <IconBtn
                         title={u.isBanned ? "Unban user" : "Ban user (blocks uploads, comments and likes)"}
                         disabled={busyId === `b-${u.id}` || pending || u.role === "ADMIN"}

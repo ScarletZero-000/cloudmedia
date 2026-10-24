@@ -10,6 +10,7 @@ export default async function AdminDashboardPage() {
       select: {
         id: true, name: true, email: true, role: true, createdAt: true,
         ban: { select: { id: true } },
+        levelOverride: true,
         _count: { select: { posts: true, comments: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -39,7 +40,7 @@ export default async function AdminDashboardPage() {
   ]);
 
   return <AdminDashboard
-    users={users.map((u) => ({ ...u, isBanned: Boolean(u.ban) }))}
+    users={users.map((u) => ({ ...u, isBanned: Boolean(u.ban), levelOverride: (u as any).levelOverride ?? null }))}
     posts={posts}
     pendingPosts={pendingPosts}
     albums={albums}

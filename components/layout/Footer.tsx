@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { Images } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-export default function Footer() {
+// Footer is a server component: account column adapts to session.
+// Logged in -> My profile / Browse feed / console. Guest -> Sign in / Create account.
+export default async function Footer() {
+  const session = await getServerSession(authOptions);
+  const myId = session?.user?.id as string | undefined;
+  const isAdmin = session?.user?.role === "ADMIN";
+
   return (
     <footer className="border-t-2 border-ink bg-ink text-paper">
       <div className="container-classic grid gap-10 py-14 md:grid-cols-[1fr_auto_auto]">
@@ -23,14 +31,31 @@ export default function Footer() {
           <p className="label-caps mb-1" style={{ color: "rgba(247,246,242,0.4)" }}>Explore</p>
           <Link href="/feed" className="text-paper/70 transition-colors hover:text-accent">Feed</Link>
           <Link href="/blog" className="text-paper/70 transition-colors hover:text-accent">Blog</Link>
+          <Link href="/albums" className="text-paper/70 transition-colors hover:text-accent">Albums</Link>
           <Link href="/upload" className="text-paper/70 transition-colors hover:text-accent">Upload</Link>
         </nav>
 
-        {/* account */}
+        {/* account — adapts to login state */}
         <nav className="flex flex-col gap-2.5 text-sm font-semibold">
           <p className="label-caps mb-1" style={{ color: "rgba(247,246,242,0.4)" }}>Account</p>
-          <Link href="/login" className="text-paper/70 transition-colors hover:text-accent">Sign in</Link>
-          <Link href="/register" className="text-paper/70 transition-colors hover:text-accent">Create account</Link>
+          {session ? (
+            <>
+              {myId && (
+                <Link href={`/profile/${myId}`} className="text-paper/70 transition-colors hover:text-accent">
+                  My profile
+                </Link>
+              )}
+              <Link href="/feed" className="text-paper/70 transition-colors hover:text-accent">Browse feed</Link>
+              {isAdmin && (
+                <Link href="/dashboard" className="text-paper/70 transition-colors hover:text-accent">Admin console</Link>
+              )}
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-paper/70 transition-colors hover:text-accent">Sign in</Link>
+              <Link href="/register" className="text-paper/70 transition-colors hover:text-accent">Create account</Link>
+            </>
+          )}
         </nav>
       </div>
 
