@@ -1,4 +1,11 @@
 import type { RichBlock, RichMark } from "@/types";
+// Normalize: description may be a string (legacy) or blocks array — never crash on .map.
+function asSafeBlocks(v: unknown): RichBlock[] {
+  if (Array.isArray(v)) return v as RichBlock[];
+  if (typeof v === "string" && v.trim()) return [{ type: "paragraph", text: v }] as unknown as RichBlock[];
+  return [];
+}
+
 
 /**
  * Renders Notion-like blocks server-side.
@@ -29,10 +36,11 @@ function applyMarks(text: string, marks?: RichMark[]) {
 }
 
 export default function RichText({ blocks }: { blocks: RichBlock[] | null }) {
-  if (!blocks?.length) return null;
+  const safe = asSafeBlocks(blocks);
+  if (!safe.length) return null;
   return (
     <div className="space-y-3 text-[15px] leading-relaxed text-ink-soft">
-      {blocks.map((b, i) => {
+      {safe.map((b, i) => {
         switch (b.type) {
           case "heading":
             return b.level === 2 ? (
