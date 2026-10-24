@@ -120,7 +120,9 @@ export default async function PostPage({
         </div>
         <div className="mt-5 flex items-center gap-3 text-sm text-ink-faint">
           <span className="flex items-center gap-1.5">
-            {post.author.name ?? "Anonymous"}
+            <Link href={`/profile/${post.author.id}`} className="font-bold text-ink transition-colors hover:text-accent">
+              {post.author.name ?? "Anonymous"}
+            </Link>
             {post.author.role === "ADMIN" && (
               <BadgeCheck className="h-4 w-4 text-blue-500" strokeWidth={2} aria-label="Verified admin" />
             )}
