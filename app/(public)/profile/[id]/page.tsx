@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import FollowButton from "@/components/profile/FollowButton";
+import { computeXp, levelProgress, tierForLevel } from "@/lib/levels";
 import ProfileEditor from "@/components/profile/ProfileEditor";
 import MediaCard from "@/components/feed/MediaCard";
 import { BadgeCheck } from "lucide-react";
@@ -36,16 +37,24 @@ export default async function ProfilePage({
     include: {
       author: { select: { id: true, name: true, image: true, role: true } },
       album: { select: { id: true, title: true } },
-      _count: { select: { comments: true } },
+      _count: { select: { comments: true, likes: true } },
     },
   });
 
   const postDTOs = posts as unknown as PostDTO[];
 
+  // level system: uploads drive xp most, likes reward quality, comments participation
+  const likesReceived = posts.reduce((sum, post) => sum + (post._count as any).likes, 0);
+  const xp = computeXp(user._count.posts, likesReceived, user._count.comments);
+  const lvl = levelProgress(xp);
+  const tier = tierForLevel(lvl.level);
+
   return (
     <div className="container-classic py-12 md:py-16">
       {/* profile header — hard card */}
-      <section className="card-hard mb-16 flex flex-col items-start gap-6 p-6 sm:flex-row sm:items-center md:p-10">
+      <section className={`card-hard mb-10 p-[3px] ${tier.color}`}>
+        <div className="border-2 border-ink p-[3px]">
+          <div className="flex flex-col items-start gap-6 bg-paper-raised p-6 sm:flex-row sm:items-center md:p-10">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-ink bg-paper-dim md:h-32 md:w-32">
           {user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -77,9 +86,35 @@ export default async function ProfilePage({
             )}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-start gap-3">
-          <ProfileEditor userId={user.id} initialName={user.name} initialImage={user.image} />
-          <FollowButton userId={user.id} />
+          <div className="flex shrink-0 flex-col items-start gap-3">
+            <ProfileEditor userId={user.id} initialName={user.name} initialImage={user.image} />
+            <FollowButton userId={user.id} />
+          </div>
+        </div>
+      </div>
+      </section>
+
+      {/* level strip */}
+      <section className="card-line mb-16 flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-5">
+          <div className={`flex h-16 w-16 shrink-0 items-center justify-center border-2 ${tier.color} bg-paper-dim`}>
+            <span className="heading-classic text-2xl">{lvl.level}</span>
+          </div>
+          <div>
+            <p className={`label-caps ${tier.chip} border px-2 py-0.5 inline-block`}>{tier.name}</p>
+            <p className="mt-1.5 text-sm text-ink-soft">
+              <b className="font-bold">{xp.toLocaleString()}</b> XP · {lvl.need} XP to level {lvl.level + 1}
+            </p>
+          </div>
+        </div>
+        <div className="w-full md:max-w-sm">
+          <div className="flex justify-between text-[10px] font-bold uppercase tracking-caps text-ink-faint">
+            <span>Level {lvl.level}</span>
+            <span>Level {lvl.level + 1}</span>
+          </div>
+          <div className="mt-1.5 h-3 border-2 border-ink bg-paper-dim">
+            <div className="h-full bg-accent transition-all" style={{ width: `${lvl.pct}%` }} />
+          </div>
         </div>
       </section>
 
