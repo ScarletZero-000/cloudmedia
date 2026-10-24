@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 
 // Album detail: editorial header (cover, count, author) + masonry-ish grid.
 export default async function AlbumPage({ params }: { params: { id: string } }) {
-  const album = await prisma.album.findUnique({
+  let album = null;
+  try {
+    album = await prisma.album.findUnique({
     where: { id: params.id },
     include: {
       author: { select: { id: true, name: true, image: true, role: true } },
@@ -21,6 +23,9 @@ export default async function AlbumPage({ params }: { params: { id: string } }) 
       },
     },
   });
+  } catch {
+    notFound();
+  }
   if (!album) notFound();
 
   const cover = album.posts[0];

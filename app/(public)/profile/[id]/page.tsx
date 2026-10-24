@@ -21,7 +21,9 @@ export default async function ProfilePage({
 }: {
   params: { id: string };
 }) {
-  const user = await prisma.user.findUnique({
+  let user = null;
+  try {
+    user = await prisma.user.findUnique({
     where: { id: params.id },
     select: {
       id: true, name: true, image: true, role: true,
@@ -29,7 +31,11 @@ export default async function ProfilePage({
       _count: { select: { posts: true, comments: true, followersIn: true } },
     },
   });
+  } catch {
+    notFound();
+  }
   if (!user) notFound();
+  user = user as NonNullable<typeof user>;
 
   const posts = await prisma.post.findMany({
     where: { authorId: user.id, published: true, status: "APPROVED" },
