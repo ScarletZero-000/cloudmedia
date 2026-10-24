@@ -29,8 +29,8 @@ export default function NotificationBell() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           if (!alive || !d) return;
-          setItems(d.notifications);
-          setUnread(d.unread);
+          setItems(Array.isArray(d.notifications) ? d.notifications : []);
+          setUnread(Number.isFinite(d.unread) ? d.unread : 0);
         })
         .catch(() => {});
     load();
