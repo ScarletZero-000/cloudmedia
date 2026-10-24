@@ -35,7 +35,7 @@ export async function generateMetadata({
       author: { select: { name: true } },
     },
   });
-  if (!post) return { title: "Not found — CloudMedia" };
+  if (!post) return { title: "Not found" };
 
   const blocks = post.description as RichBlock[] | null;
   const plain =
@@ -45,7 +45,7 @@ export async function generateMetadata({
   const img = post.thumbnailUrl || post.url;
 
   return {
-    title: `${post.title} — CloudMedia`,
+    title: post.title,
     description: plain ?? `By ${post.author.name ?? "Anonymous"} on CloudMedia.`,
     openGraph: {
       title: post.title,

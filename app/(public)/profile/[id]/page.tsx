@@ -99,44 +99,32 @@ export default async function ProfilePage({
       </div>
       </section>
 
-      {/* level strip */}
-      <section className="card-hard mb-16 p-[3px]" style={{ borderColor: undefined }}>
-        <div className={`border-2 p-[3px] ${tier.ring}`}>
-          <div className="flex flex-col items-stretch gap-6 bg-paper-raised p-6 sm:flex-row sm:items-center md:justify-between md:p-8">
-            {/* badge: solid color square with rotated ink frame */}
-            <div className="flex items-center gap-6">
-              <div className={`relative flex h-20 w-20 shrink-0 items-center justify-center ${tier.bg} shadow-[5px_5px_0_0_#0c0c0c]`}>
-                <span className="font-serif text-3xl font-bold text-paper">{lvl.level}</span>
-                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap border-2 border-ink bg-paper px-2 py-px text-[9px] font-bold uppercase tracking-caps text-ink">
-                  {tier.name}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="label-caps">Rank</p>
-                <p className="heading-classic mt-1 text-xl md:text-2xl">
-                  {override ? `Level ${lvl.level}` : `Level ${lvl.level}`}
-                </p>
-                <p className="mt-1 text-sm text-ink-soft">
-                  <b className="font-bold text-ink">{xp.toLocaleString()} XP</b>
-                  {override ? " · set by admin" : ` · ${lvl.need} XP to level ${lvl.level + 1}`}
-                </p>
-              </div>
-            </div>
-            {/* xp bar */}
-            {!override && (
-              <div className="w-full sm:max-w-xs">
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-caps text-ink-faint">
-                  <span>Lv {lvl.level}</span>
-                  <span>Lv {lvl.level + 1}</span>
-                </div>
-                <div className="mt-2 h-4 border-2 border-ink bg-paper-dim shadow-[3px_3px_0_0_#0c0c0c]">
-                  <div className="h-full bg-accent" style={{ width: `${lvl.pct}%` }} />
-                </div>
-                <p className="mt-2 text-[11px] text-ink-faint">{lvl.into} / {lvl.next - lvl.current} XP</p>
-              </div>
-            )}
-          </div>
+      {/* rank strip — compact single row */}
+      <section className={`mb-16 flex flex-wrap items-center gap-x-6 gap-y-4 border-2 bg-paper-raised px-5 py-4 shadow-[4px_4px_0_0_#0c0c0c] ${tier.ring}`}>
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center border-2 border-ink ${tier.bg}`}>
+          <span className="font-serif text-lg font-bold text-paper">{lvl.level}</span>
         </div>
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-bold text-ink">
+            {tier.name}
+            <span className="border border-line px-1.5 py-px text-[9px] font-bold uppercase tracking-caps text-ink-faint">
+              Lv {lvl.level}
+            </span>
+          </p>
+          <p className="text-xs text-ink-soft">
+            {xp.toLocaleString()} XP{override ? " · set by admin" : ` · ${lvl.need} XP to next level`}
+          </p>
+        </div>
+        {!override && (
+          <div className="ml-auto w-full min-w-[10rem] max-w-[16rem]">
+            <div className="h-2.5 w-full border-2 border-ink bg-paper-dim">
+              <div className={`h-full ${tier.bg}`} style={{ width: `${lvl.pct}%` }} />
+            </div>
+            <p className="mt-1.5 text-right text-[10px] font-bold uppercase tracking-caps text-ink-faint">
+              {lvl.into} / {lvl.next - lvl.current} XP
+            </p>
+          </div>
+        )}
       </section>
 
       {/* their uploads */}

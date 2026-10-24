@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // Blog = magazine. Only posts flagged isBlog (admin-published articles).
 // Layout: latest entry is a full-width hero, the rest are a numbered editorial list.
 export const metadata: Metadata = {
-  title: "Blog — CloudMedia",
+  title: "Blog",
   description: "Stories, notes, and photo essays from the community.",
 };
 
