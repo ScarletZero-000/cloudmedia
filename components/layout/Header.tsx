@@ -6,7 +6,8 @@ import { useSession, signOut } from "next-auth/react";
 import NotificationBell from "@/components/layout/NotificationBell";
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Images, LogOut, Menu, UserRound, X } from "lucide-react";
+import { Images, LogOut, Menu, UserRound, X, LayoutDashboard, UploadCloud, ChevronDown } from "lucide-react";
+import { useRef, useEffect } from "react";
 
 // Smooth navbar:
 // - ink bar stays, but links GLIDE (animated underline grows instead of popping)
@@ -16,6 +17,8 @@ export default function Header() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const isAdmin = session?.user?.role === "ADMIN";
 
@@ -28,6 +31,19 @@ export default function Header() {
   ];
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuOpen]);
+
+  const avatarUrl = session?.user?.image as string | undefined;
+  const userName = session?.user?.name as string | undefined;
+  const myId = session?.user?.id as string | undefined;
 
   return (
     <header className="sticky top-0 z-40 border-b-2 border-ink bg-ink text-paper">
@@ -71,13 +87,71 @@ export default function Header() {
           ))}
           {session && <NotificationBell />}
           {session ? (
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex items-center gap-1.5 border-2 border-paper/30 px-3.5 py-1.5 text-sm font-bold text-paper/80 transition-all duration-200 hover:-translate-y-px hover:border-paper hover:text-paper"
-            >
-              <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden />
-              Sign out
-            </button>
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                className="flex items-center gap-2 border-2 border-paper/30 py-1 pl-1 pr-2.5 transition-all duration-200 hover:border-paper"
+                aria-label="Account menu"
+              >
+                <span className="h-7 w-7 overflow-hidden rounded-full border-2 border-paper/40 bg-paper-dim">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-[11px] font-bold text-ink">
+                      {(userName ?? "?").charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+                <span className="hidden max-w-[7rem] truncate text-sm font-bold text-paper lg:block">
+                  {userName ?? "Account"}
+                </span>
+                <ChevronDown className={`h-3.5 w-3.5 text-paper/60 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} strokeWidth={2.5} aria-hidden />
+              </button>
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute right-0 z-50 mt-2 w-56 border-2 border-ink bg-paper-raised shadow-[6px_6px_0_0_#0c0c0c]"
+                    role="menu"
+                  >
+                    <div className="border-b-2 border-ink px-4 py-3">
+                      <p className="truncate text-sm font-bold text-ink">{userName ?? "Account"}</p>
+                      {isAdmin && (
+                        <span className="mt-1 inline-block border-2 border-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-caps text-accent">Admin</span>
+                      )}
+                    </div>
+                    {myId && (
+                      <Link href={`/profile/${myId}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-3 text-sm font-bold text-ink-soft transition-colors hover:bg-paper-dim hover:text-ink">
+                        <UserRound className="h-4 w-4" strokeWidth={2} aria-hidden />
+                        My profile
+                      </Link>
+                    )}
+                    <Link href="/upload" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 border-t border-line px-4 py-3 text-sm font-bold text-ink-soft transition-colors hover:bg-paper-dim hover:text-ink">
+                      <UploadCloud className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      Upload
+                    </Link>
+                    {isAdmin && (
+                      <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 border-t border-line px-4 py-3 text-sm font-bold text-ink-soft transition-colors hover:bg-paper-dim hover:text-ink">
+                        <LayoutDashboard className="h-4 w-4" strokeWidth={2} aria-hidden />
+                        Admin console
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
+                      className="flex w-full items-center gap-2.5 border-t-2 border-ink px-4 py-3 text-left text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      Sign out
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ) : (
             <Link
               href="/login"
@@ -112,6 +186,25 @@ export default function Header() {
             className="overflow-hidden border-t-2 border-paper/20 bg-ink md:hidden"
           >
             <div className="container-classic flex flex-col py-3">
+              {session && myId && (
+                <Link
+                  href={`/profile/${myId}`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 border-b border-paper/10 py-3.5 text-sm font-bold text-paper/80"
+                >
+                  <span className="h-8 w-8 overflow-hidden rounded-full border-2 border-paper/40 bg-paper-dim">
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-xs font-bold text-ink">
+                        {(userName ?? "?").charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </span>
+                  My profile
+                </Link>
+              )}
               {links.map((l, i) => (
                 <motion.div
                   key={l.href}
