@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import ChunkGuard from "@/components/layout/ChunkGuard";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -53,6 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className="min-h-dvh bg-paper text-ink font-sans antialiased [-webkit-tap-highlight-color:transparent]">
+      <ChunkGuard />
         {children}
       </body>
     </html>
