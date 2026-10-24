@@ -115,6 +115,8 @@ export async function POST(req: NextRequest) {
         albumId: albumId ?? null,
         // Approval flow: admins publish instantly, regular users need review
         status: session.user.role === "ADMIN" ? "APPROVED" : "PENDING",
+        // Blog flag: only admins can publish as blog article (elsewhere = feed upload)
+        isBlog: session.user.role === "ADMIN" && (formData.get("isBlog") as string | null) === "1",
         // thumbnailUrl / width / height can be filled by client-side probing
       },
     });

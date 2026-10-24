@@ -125,6 +125,7 @@ model Post {
   height      Int?
   size        Int?      // bytes
   published   Boolean   @default(true)
+  isBlog      Boolean   @default(false)
   status      PostStatus @default(PENDING)
   authorId    String
   albumId     String?

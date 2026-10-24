@@ -12,6 +12,7 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
   const [desc, setDesc] = useState("");
   const [albumId, setAlbumId] = useState("");
   const [tags, setTags] = useState("");
+  const [asBlog, setAsBlog] = useState(false);
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -30,7 +31,8 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
     const fd = new FormData();
     fd.append("file", file);
     if (title) fd.append("title", title);
-    if (desc.trim()) fd.append("description", JSON.stringify([{ type: "paragraph", text: desc.trim() }]));
+fd.append("isBlog", asBlog ? "1" : "0");
+          fd.append("description", JSON.stringify([{ type: "paragraph", text: desc.trim() }]));
     if (albumId) fd.append("albumId", albumId);
     if (tags.trim()) fd.append("tags", tags);
 
@@ -139,6 +141,21 @@ export default function UploadForm({ albums }: { albums: { id: string; title: st
       </div>
 
       <div className="flex items-center gap-4">
+        {session?.user?.role === "ADMIN" && (
+          <label className="flex cursor-pointer flex-wrap items-center gap-3 border-2 border-ink bg-paper-dim px-4 py-3">
+            <input
+              type="checkbox"
+              checked={asBlog}
+              onChange={(e) => setAsBlog(e.target.checked)}
+              className="h-4 w-4 accent-[#B3401E]"
+            />
+            <span className="text-sm font-bold text-ink">Publish as blog article</span>
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-caps text-ink-faint">
+              appears in Blog, not Feed
+            </span>
+          </label>
+        )}
+
         <button type="submit" disabled={!file || status === "uploading"} className="btn-classic disabled:opacity-40 disabled:pointer-events-none">
           <UploadCloud className="h-4 w-4" strokeWidth={1.75} aria-hidden />
           {status === "uploading" ? "Uploading…" : "Upload"}

@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     where: {
       published: true,
       status: "APPROVED", // public feed shows approved content only
+      isBlog: false, // blog articles live in /blog, not the feed
       ...(albumId && { albumId }),
       ...(authorId && { authorId }),
       ...(q && {
