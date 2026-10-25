@@ -113,3 +113,45 @@
 }
 
 @keyframes card-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ============ Mobile UX hardening ============ */
+/* Tap targets: every interactive text link gets a comfortable hit area on touch screens */
+@media (pointer: coarse) {
+  footer nav a,
+  .text-sm.font-bold.underline {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    display: inline-block;
+  }
+  /* search inputs & form fields: thumb-friendly height */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"] {
+    min-height: 46px;
+  }
+  /* smaller tap jitter: kill 300ms tap highlight already done globally; add active feedback */
+  button:active,
+  a:active {
+    opacity: 0.75;
+  }
+}
+
+/* Prevent long titles/urls from breaking layout anywhere */
+h1, h2, h3, p, a {
+  overflow-wrap: break-word;
+}
+
+/* Images never blow out their container even if intrinsic size is huge */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Better focus visibility for keyboard users (a11y) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #B3401E;
+  outline-offset: 2px;
+}
