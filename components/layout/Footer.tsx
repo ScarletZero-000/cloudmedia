@@ -1,12 +1,14 @@
-import Link from "next/link";
-import { Images } from "lucide-react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+"use client";
 
-// Footer is a server component: account column adapts to session.
-// Logged in -> My profile / Browse feed / console. Guest -> Sign in / Create account.
-export default async function Footer() {
-  const session = await getServerSession(authOptions);
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { Images } from "lucide-react";
+
+// Footer as a CLIENT component reading session via useSession — it renders inside
+// the client (public) layout, where getServerSession is not available.
+// (A server component calling getServerSession inside a client layout crashes at runtime.)
+export default function Footer() {
+  const { data: session, status } = useSession();
   const myId = session?.user?.id as string | undefined;
   const isAdmin = session?.user?.role === "ADMIN";
 
@@ -35,10 +37,10 @@ export default async function Footer() {
           <Link href="/upload" className="text-paper/70 transition-colors hover:text-accent">Upload</Link>
         </nav>
 
-        {/* account — adapts to login state */}
+        {/* account — adapts to session state */}
         <nav className="flex flex-col gap-2.5 text-sm font-semibold">
           <p className="label-caps mb-1" style={{ color: "rgba(247,246,242,0.4)" }}>Account</p>
-          {session ? (
+          {status === "loading" ? null : session ? (
             <>
               {myId && (
                 <Link href={`/profile/${myId}`} className="text-paper/70 transition-colors hover:text-accent">

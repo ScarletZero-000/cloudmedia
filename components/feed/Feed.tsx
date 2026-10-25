@@ -56,7 +56,7 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
       fetch(`/api/posts?${params}`)
         .then((r) => r.json())
         .then((data) => {
-          setPosts(data.posts);
+          setPosts(Array.isArray(data.posts) ? data.posts : []);
           setCursor(data.nextCursor);
           setDone(!data.nextCursor);
         })
