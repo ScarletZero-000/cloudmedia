@@ -510,7 +510,7 @@ function Stat({
         {icon}
         <span className={`label-caps ${accent ? "!text-paper/60" : ""}`}>{label}</span>
       </div>
-      <p className={`heading-classic text-4xl ${warn && !accent ? "text-accent" : ""}`}>{value}</p>
+      <p className={`heading-classic text-4xl ${accent ? "!text-paper" : warn ? "text-accent" : ""}`}>{value}</p>
     </div>
   );
 }
