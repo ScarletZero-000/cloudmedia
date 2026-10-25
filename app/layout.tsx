@@ -21,7 +21,7 @@ const playfair = Playfair_Display({
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5, // allow pinch-zoom (accessibility) but prevent janky auto-zoom on input focus on iOS
+  maximumScale: 5,
   themeColor: "#0C0C0C",
 };
 
@@ -46,6 +46,16 @@ export const metadata: Metadata = {
   },
 };
 
+// Inline bootstrap error trap: runs BEFORE any React/chunk code, so it catches
+// stale-chunk failures and hydration crashes that the error boundaries never see.
+const errTrap = `window.__cm_err__=1;
+window.addEventListener('error',function(e){try{var m=(e&&e.message)||'unknown';
+fetch('/api/client-errors',{method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({message:String(m).slice(0,300),url:location.href})})['catch'](function(){})}catch(x){}});
+window.addEventListener('unhandledrejection',function(e){try{
+fetch('/api/client-errors',{method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({message:('REJ: '+String(e.reason)).slice(0,300),url:location.href})})['catch'](function(){})}catch(x){}});`;
+
 export default function RootLayout({
   children,
 }: {
@@ -53,8 +63,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: errTrap }} />
+      </head>
       <body className="min-h-dvh bg-paper text-ink font-sans antialiased [-webkit-tap-highlight-color:transparent]">
-      <ChunkGuard />
+        <ChunkGuard />
         {children}
       </body>
     </html>
