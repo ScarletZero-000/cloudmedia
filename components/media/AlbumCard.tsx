@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Images } from "lucide-react";
 
 type AlbumCardProps = {
@@ -23,11 +22,9 @@ export default function AlbumCard({
   index = 0,
 }: AlbumCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
+    <div
+      className="animate-[card-in_0.5s_ease-out_both]"
+      style={{ animationDelay: `${(index % 3) * 0.08}s` }}
     >
       <Link
         href={`/album/${id}`}
@@ -58,6 +55,6 @@ export default function AlbumCard({
           )}
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 }

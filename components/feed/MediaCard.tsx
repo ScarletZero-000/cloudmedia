@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import type { PostDTO } from "@/types";
 import RichText from "@/components/editor/RichText";
 import { MessageCircle, BadgeCheck } from "lucide-react";
@@ -16,15 +15,13 @@ export default function MediaCard({
   index: number;
   canDelete?: boolean;
 }) {
-  const reduce = useReducedMotion();
-
+  // NOTE: no JS-driven entrance animation here. Framer's whileInView starts cards
+  // at opacity:0 — if hydration stalls on a slow phone, the whole feed looks blank.
+  // CSS animation degrades gracefully: content is ALWAYS visible without JS.
   return (
-    <motion.article
-      initial={reduce ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
-      className="card-line group flex flex-col"
+    <article
+      className="card-line group flex flex-col animate-[card-in_0.5s_ease-out_both]"
+      style={{ animationDelay: `${(index % 3) * 0.08}s` }}
     >
       <a href={`/post/${(post as any).slug || post.id}`} className="block overflow-hidden border-b-2 border-ink">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -76,6 +73,6 @@ export default function MediaCard({
           </time>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 }

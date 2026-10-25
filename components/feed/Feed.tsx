@@ -140,18 +140,13 @@ export default function Feed({ initialPosts, initialCursor }: { initialPosts: Po
 
   return (
     <div className="container-classic py-16 md:py-24">
-      <motion.div
-        initial={reduce ? false : { opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="mb-12 max-w-2xl"
-      >
+      <div className="mb-12 max-w-2xl animate-[card-in_0.4s_ease-out_both]">
         <p className="label-caps mb-4">The Collection</p>
         <h1 className="heading-classic text-4xl md:text-6xl">Media, curated &amp; shared.</h1>
         <p className="mt-5 text-ink-soft">
           Images and video from the community — grouped into albums, annotated with care, open to everyone.
         </p>
-      </motion.div>
+      </div>
 
       {/* search + sort bar */}
       <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:items-center">
