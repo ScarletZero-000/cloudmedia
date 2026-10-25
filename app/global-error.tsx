@@ -1,4 +1,14 @@
 "use client";
+function reportError(message: string) {
+  try {
+    fetch("/api/client-errors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, url: window.location.href }),
+    }).catch(() => {});
+  } catch {}
+}
+
 
 // Global error boundary: when a client-side exception occurs (most commonly
 // stale cached JS chunks right after a deploy), show a branded recovery screen
@@ -10,6 +20,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  if (typeof window !== "undefined") reportError(`global: ${error.message}`);
+
   return (
     <html lang="en">
       <body style={{ background: "#F7F6F2", color: "#0C0C0C", fontFamily: "system-ui, sans-serif" }}>

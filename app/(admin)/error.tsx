@@ -1,12 +1,25 @@
 "use client";
+function reportError(message: string) {
+  try {
+    fetch("/api/client-errors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, url: window.location.href }),
+    }).catch(() => {});
+  } catch {}
+}
+
 
 // Admin console error boundary — same recovery pattern, console-styled copy.
 export default function AdminError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  if (typeof window !== "undefined") reportError(`admin-boundary: ${error.message}`);
+
   return (
     <div className="container-classic flex min-h-[60vh] flex-col items-center justify-center py-24 text-center">
       <p className="label-caps text-accent">Console error</p>
